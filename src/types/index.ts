@@ -116,6 +116,9 @@ export interface ImageInputNodeData {
   imageData?: string;
   fileName?: string;
   imagePath?: string;
+  maskImageData?: string;
+  maskImagePath?: string;
+  hasMask?: boolean;
 }
 
 export interface TextOutputNodeData {

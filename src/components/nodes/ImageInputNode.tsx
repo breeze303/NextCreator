@@ -1,9 +1,10 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import { ImagePlus, Upload, X, Maximize2 } from "lucide-react";
+import { ImagePlus, Upload, X, Maximize2, Paintbrush } from "lucide-react";
 import { useFlowStore } from "@/stores/flowStore";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { ImagePreviewModal } from "@/components/ui/ImagePreviewModal";
+import { MaskEditorModal } from "@/components/ui/MaskEditorModal";
 import { getImageUrl, saveImage } from "@/services/fileStorageService";
 import type { ImageInputNodeData } from "@/types";
 
@@ -15,6 +16,7 @@ export const ImageInputNode = memo(({ id, data, selected }: NodeProps<ImageInput
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showMaskEditor, setShowMaskEditor] = useState(false);
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,11 +69,50 @@ export const ImageInputNode = memo(({ id, data, selected }: NodeProps<ImageInput
       imageData: undefined,
       fileName: undefined,
       imagePath: undefined,
+      maskImageData: undefined,
+      maskImagePath: undefined,
+      hasMask: undefined,
     });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }, [id, updateNodeData]);
+
+  const handleMaskSave = useCallback(
+    async (maskBase64: string) => {
+      const { activeCanvasId } = useCanvasStore.getState();
+      if (activeCanvasId) {
+        try {
+          const maskInfo = await saveImage(
+            maskBase64,
+            activeCanvasId,
+            id,
+            undefined,
+            undefined,
+            "input"
+          );
+          updateNodeData<ImageInputNodeData>(id, {
+            maskImageData: undefined,
+            maskImagePath: maskInfo.path,
+            hasMask: true,
+          });
+        } catch {
+          updateNodeData<ImageInputNodeData>(id, {
+            maskImageData: maskBase64,
+            maskImagePath: undefined,
+            hasMask: true,
+          });
+        }
+      } else {
+        updateNodeData<ImageInputNodeData>(id, {
+          maskImageData: maskBase64,
+          maskImagePath: undefined,
+          hasMask: true,
+        });
+      }
+    },
+    [id, updateNodeData]
+  );
 
   return (
   <>
@@ -98,9 +139,10 @@ export const ImageInputNode = memo(({ id, data, selected }: NodeProps<ImageInput
         />
 
         {data.imageData || data.imagePath ? (
-          <div className="relative">
+          <div>
+            {/* 图片预览 - 自适应高度展示完整图片 */}
             <div
-              className="w-full h-[120px] overflow-hidden rounded-lg bg-base-200 cursor-pointer group"
+              className="w-full overflow-hidden rounded-lg bg-base-200 cursor-pointer group relative"
               onClick={() => setShowPreview(true)}
             >
               <img
@@ -112,27 +154,56 @@ export const ImageInputNode = memo(({ id, data, selected }: NodeProps<ImageInput
                     : ""
                 }
                 alt="Input"
-                className="w-full h-full object-cover"
+                className="w-full h-auto block"
               />
+              {/* 蒙版叠加层 - 直接显示红色标记 */}
+              {data.hasMask && (data.maskImagePath || data.maskImageData) && (
+                <img
+                  src={
+                    data.maskImagePath
+                      ? getImageUrl(data.maskImagePath)
+                      : `data:image/png;base64,${data.maskImageData}`
+                  }
+                  alt=""
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                />
+              )}
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                 <Maximize2 className="w-6 h-6 text-white" />
               </div>
             </div>
-            <button
-              className="btn btn-circle btn-xs btn-error absolute top-1 right-1 opacity-80 hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClearImage();
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              <X className="w-3 h-3" />
-            </button>
-            {data.fileName && (
-              <p className="text-xs text-base-content/60 mt-1.5 truncate px-0.5">
-                {data.fileName}
-              </p>
-            )}
+            {/* 操作栏 */}
+            <div className="flex items-center mt-1.5 gap-1">
+              {data.fileName && (
+                <p className="text-xs text-base-content/60 truncate flex-1">
+                  {data.fileName}
+                </p>
+              )}
+              <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
+                <button
+                  className={`btn btn-circle btn-xs ${data.hasMask ? "btn-error" : "btn-ghost"}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMaskEditor(true);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  title={data.hasMask ? "编辑蒙版（已设置）" : "添加蒙版"}
+                >
+                  <Paintbrush className="w-3 h-3" />
+                </button>
+                <button
+                  className="btn btn-circle btn-xs btn-ghost hover:btn-error"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClearImage();
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  title="删除图片"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <button
@@ -162,6 +233,21 @@ export const ImageInputNode = memo(({ id, data, selected }: NodeProps<ImageInput
         imagePath={data.imagePath}
         onClose={() => setShowPreview(false)}
         fileName={data.fileName}
+      />
+    )}
+
+    {/* 蒙版编辑器 */}
+    {showMaskEditor && (data.imageData || data.imagePath) && (
+      <MaskEditorModal
+        imageUrl={
+          data.imagePath
+            ? getImageUrl(data.imagePath)
+            : `data:image/png;base64,${data.imageData}`
+        }
+        existingMaskData={data.maskImageData}
+        existingMaskPath={data.maskImagePath}
+        onSave={handleMaskSave}
+        onClose={() => setShowMaskEditor(false)}
       />
     )}
   </>

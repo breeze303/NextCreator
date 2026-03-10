@@ -189,16 +189,26 @@ function ImageGeneratorBase({
       // 根据 nodeVariant 确定节点类型
       const nodeType = nodeVariant === "pro" ? "imageGeneratorPro" : nodeVariant === "nb2" ? "imageGeneratorNB2" : "imageGeneratorFast";
 
+      // 检测是否有蒙版输入，自动增强提示词
+      let finalPrompt = prompt;
+      if (images.length > 0) {
+        const connectedImages = getConnectedImagesWithInfo(id);
+        const hasMaskInput = connectedImages.some((img) => img.hasMask);
+        if (hasMaskInput) {
+          finalPrompt = `I'm providing two images: the original image and the same image with red highlighted areas marking the regions I want you to edit. Please edit ONLY the red-marked areas according to this instruction: ${prompt}`;
+        }
+      }
+
       const response = images.length > 0
         ? await editImage({
-            prompt,
+            prompt: finalPrompt,
             model,
             inputImages: images,
             aspectRatio: data.aspectRatio,
             imageSize: showImageSize ? data.imageSize : undefined,
           }, nodeType)
         : await generateImage({
-            prompt,
+            prompt: finalPrompt,
             model,
             aspectRatio: data.aspectRatio,
             imageSize: showImageSize ? data.imageSize : undefined,

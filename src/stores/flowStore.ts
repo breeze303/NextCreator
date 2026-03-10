@@ -21,6 +21,29 @@ import { useCanvasStore } from "@/stores/canvasStore";
 import { toast } from "@/stores/toastStore";
 import { readImage } from "@/services/fileStorageService";
 
+// 辅助函数：将原图和蒙版绘制层合成为一张带红色标记的图片
+function compositeWithMask(originalBase64: string, maskBase64: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const origImg = new Image();
+    origImg.onload = () => {
+      const maskImg = new Image();
+      maskImg.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = origImg.naturalWidth;
+        canvas.height = origImg.naturalHeight;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(origImg, 0, 0);
+        ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png").split(",")[1]);
+      };
+      maskImg.onerror = reject;
+      maskImg.src = `data:image/png;base64,${maskBase64}`;
+    };
+    origImg.onerror = reject;
+    origImg.src = `data:image/png;base64,${originalBase64}`;
+  });
+}
+
 // 历史记录状态（用于撤销/重做）
 interface HistoryState {
   nodes: CustomNode[];
@@ -119,6 +142,7 @@ interface FlowStore {
     fileName?: string;
     imageData: string;
     imagePath?: string;
+    hasMask?: boolean;
   }>;
 
   // 获取连接的图片详细信息 - 异步版本，从文件按需加载图片数据
@@ -1019,6 +1043,32 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         if (imageData) {
           images.push(imageData);
         }
+        // 如果是 imageInputNode 且有蒙版，合成原图+蒙版绘制层后加入
+        if (sourceNode.type === "imageInputNode") {
+          const maskData = sourceNode.data as { hasMask?: boolean; maskImagePath?: string; maskImageData?: string };
+          if (maskData.hasMask) {
+            let maskLayer: string | undefined;
+            if (maskData.maskImagePath) {
+              try {
+                maskLayer = await readImage(maskData.maskImagePath);
+              } catch {
+                maskLayer = maskData.maskImageData;
+              }
+            } else {
+              maskLayer = maskData.maskImageData;
+            }
+            if (maskLayer && imageData) {
+              try {
+                const composite = await compositeWithMask(imageData, maskLayer);
+                images.push(composite);
+              } catch {
+                images.push(maskLayer);
+              }
+            } else if (maskLayer) {
+              images.push(maskLayer);
+            }
+          }
+        }
       } else if (targetHandle === "input-file") {
         if (sourceNode.type === "fileUploadNode") {
           const data = sourceNode.data as { fileData?: string; mimeType?: string; fileName?: string };
@@ -1093,7 +1143,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const { nodes, edges } = get();
     const incomingEdges = edges.filter((edge) => edge.target === nodeId);
 
-    const images: Array<{ id: string; fileName?: string; imageData: string; imagePath?: string }> = [];
+    const images: Array<{ id: string; fileName?: string; imageData: string; imagePath?: string; hasMask?: boolean }> = [];
 
     for (const edge of incomingEdges) {
       const sourceNode = nodes.find((n) => n.id === edge.source);
@@ -1104,7 +1154,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
       // 只处理图片输入端口
       if (targetHandle === "input-image" || !targetHandle) {
         if (sourceNode.type === "imageInputNode") {
-          const data = sourceNode.data as { imageData?: string; fileName?: string; imagePath?: string };
+          const data = sourceNode.data as { imageData?: string; fileName?: string; imagePath?: string; hasMask?: boolean };
           // 同时检查 imageData 和 imagePath，任一有值则表示有图片
           if (data.imageData || data.imagePath) {
             images.push({
@@ -1112,6 +1162,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
               fileName: data.fileName || `图片-${sourceNode.id.slice(0, 4)}`,
               imageData: data.imageData || "",  // 同步版本可能没有 base64 数据
               imagePath: data.imagePath,
+              hasMask: data.hasMask,
             });
           }
         } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
