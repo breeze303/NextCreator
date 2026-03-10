@@ -1,5 +1,5 @@
 export { PromptNode } from "./PromptNode";
-export { ImageGeneratorProNode, ImageGeneratorFastNode } from "./ImageGeneratorNode";
+export { ImageGeneratorProNode, ImageGeneratorFastNode, ImageGeneratorNB2Node } from "./ImageGeneratorNode";
 export { DalleGeneratorNode } from "./DalleGeneratorNode";
 export { FluxGeneratorNode } from "./FluxGeneratorNode";
 export { GptImageGeneratorNode } from "./GptImageGeneratorNode";
@@ -15,7 +15,7 @@ export { LLMContentNode } from "./LLMContentNode";
 export { FileUploadNode } from "./FileUploadNode";
 
 import { PromptNode } from "./PromptNode";
-import { ImageGeneratorProNode, ImageGeneratorFastNode } from "./ImageGeneratorNode";
+import { ImageGeneratorProNode, ImageGeneratorFastNode, ImageGeneratorNB2Node } from "./ImageGeneratorNode";
 import { DalleGeneratorNode } from "./DalleGeneratorNode";
 import { FluxGeneratorNode } from "./FluxGeneratorNode";
 import { GptImageGeneratorNode } from "./GptImageGeneratorNode";
@@ -35,6 +35,7 @@ export const nodeTypes = {
   promptNode: PromptNode,
   imageGeneratorProNode: ImageGeneratorProNode,
   imageGeneratorFastNode: ImageGeneratorFastNode,
+  imageGeneratorNB2Node: ImageGeneratorNB2Node,
   dalleGeneratorNode: DalleGeneratorNode,
   fluxGeneratorNode: FluxGeneratorNode,
   gptImageGeneratorNode: GptImageGeneratorNode,

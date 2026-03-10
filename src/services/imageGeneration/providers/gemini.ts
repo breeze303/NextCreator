@@ -49,9 +49,13 @@ export class GeminiImageProvider implements ImageGenerationProvider {
     "5:4",
     "4:5",
     "21:9",
+    "1:4",
+    "4:1",
+    "1:8",
+    "8:1",
   ];
 
-  readonly supportedImageSizes = ["1K", "2K", "4K"];
+  readonly supportedImageSizes = ["512", "1K", "2K", "4K"];
 
   readonly supportsMultipleInputImages = true;
   readonly maxInputImages = 10;

@@ -28,6 +28,7 @@ const protocolLabels: Record<ProviderProtocol, string> = {
 const nodeTypeConfig: { key: keyof NodeProviderMapping; label: string; description: string }[] = [
   { key: "imageGeneratorPro", label: "NanoBanana Pro", description: "高质量图片生成 / PPT 页面图片生成" },
   { key: "imageGeneratorFast", label: "NanoBanana", description: "快速图片生成节点" },
+  { key: "imageGeneratorNB2", label: "NanoBanana2", description: "推荐首选图片生成节点" },
   { key: "dalleGenerator", label: "DALL-E 绘图", description: "OpenAI DALL-E 图片生成节点" },
   { key: "fluxGenerator", label: "Flux 绘图", description: "Flux 图片生成节点" },
   { key: "gptImageGenerator", label: "GPT Image 绘图", description: "OpenAI GPT Image 图片生成节点" },

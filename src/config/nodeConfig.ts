@@ -70,6 +70,21 @@ export const nodeCategories: NodeCategory[] = [
         outputs: ["image"],
       },
       {
+        type: "imageGeneratorNB2Node",
+        label: "NanoBanana2",
+        description: "推荐首选，性能/成本/延迟最佳平衡",
+        icon: "Sparkles",
+        defaultData: {
+          label: "NanoBanana2",
+          model: "gemini-3.1-flash-image-preview",
+          aspectRatio: "1:1",
+          imageSize: "1K",
+          status: "idle",
+        },
+        inputs: ["prompt", "image"],
+        outputs: ["image"],
+      },
+      {
         type: "imageGeneratorFastNode",
         label: "NanoBanana",
         description: "快速生成，适合批量任务",

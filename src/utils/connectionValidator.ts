@@ -239,6 +239,7 @@ export function validateConnection(
   const isMultiImageAllowed =
     targetNode.type === "imageGeneratorProNode" ||
     targetNode.type === "imageGeneratorFastNode" ||
+    targetNode.type === "imageGeneratorNB2Node" ||
     targetNode.type === "pptContentNode" ||
     targetNode.type === "veoGeneratorNode";
 

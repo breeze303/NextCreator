@@ -4,7 +4,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { extractBase64ImageFromText, normalizeImageInput } from "@/services/imageDataUtils";
 
 // 图片节点类型
-type ImageNodeType = "imageGeneratorPro" | "imageGeneratorFast";
+type ImageNodeType = "imageGeneratorPro" | "imageGeneratorFast" | "imageGeneratorNB2";
 
 // 获取供应商配置
 function getProviderConfig(nodeType: ImageNodeType) {
@@ -266,7 +266,7 @@ export async function generateImage(
 ): Promise<GenerationResponse> {
   try {
     const provider = getProviderConfig(nodeType);
-    const isPro = params.model === "gemini-3-pro-image-preview";
+    const supportsImageSize = ["gemini-3-pro-image-preview", "gemini-3.1-flash-image-preview"].includes(params.model);
 
     if (provider.protocol === "openai" || provider.protocol === "openaiResponses") {
       return await invokeOpenAIChat(
@@ -287,7 +287,7 @@ export async function generateImage(
         model: params.model,
         prompt: params.prompt,
         aspectRatio: params.aspectRatio || "1:1",
-        imageSize: isPro ? params.imageSize : undefined,
+        imageSize: supportsImageSize ? params.imageSize : undefined,
       },
       { name: provider.name, protocol: provider.protocol }
     );
@@ -310,7 +310,7 @@ export async function editImage(
 
   try {
     const provider = getProviderConfig(nodeType);
-    const isPro = params.model === "gemini-3-pro-image-preview";
+    const supportsImageSize = ["gemini-3-pro-image-preview", "gemini-3.1-flash-image-preview"].includes(params.model);
     const normalizedInputImages = params.inputImages?.map((image) => normalizeImageInput(image).base64);
 
     if (provider.protocol === "openai" || provider.protocol === "openaiResponses") {
@@ -343,7 +343,7 @@ export async function editImage(
         prompt: params.prompt,
         inputImages: normalizedInputImages,
         aspectRatio: params.aspectRatio || "1:1",
-        imageSize: isPro ? params.imageSize : undefined,
+        imageSize: supportsImageSize ? params.imageSize : undefined,
       },
       { name: provider.name, protocol: provider.protocol }
     );

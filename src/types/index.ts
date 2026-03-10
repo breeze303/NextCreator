@@ -72,8 +72,8 @@ export interface VideoGenerationResponse {
 export interface ImageGenerationParams {
   prompt: string;
   model: ModelType;
-  aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "3:2" | "2:3" | "5:4" | "4:5" | "21:9";
-  imageSize?: "1K" | "2K" | "4K";
+  aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "3:2" | "2:3" | "5:4" | "4:5" | "21:9" | "1:4" | "4:1" | "1:8" | "8:1";
+  imageSize?: "512" | "1K" | "2K" | "4K";
   responseModalities?: ("TEXT" | "IMAGE")[];
 }
 
@@ -217,6 +217,7 @@ export interface Provider {
 export interface NodeProviderMapping {
   imageGeneratorPro?: string;   // Pro 图片节点使用的供应商 ID
   imageGeneratorFast?: string;  // Fast 图片节点使用的供应商 ID
+  imageGeneratorNB2?: string;   // NanoBanana2 图片节点使用的供应商 ID
   dalleGenerator?: string;      // DALL-E 图片节点使用的供应商 ID
   fluxGenerator?: string;       // Flux 图片节点使用的供应商 ID
   gptImageGenerator?: string;   // GPT Image 图片节点使用的供应商 ID
@@ -233,6 +234,7 @@ export interface NodeProviderMapping {
 export const NODE_ALLOWED_PROTOCOLS: Record<keyof NodeProviderMapping, ProviderProtocol[]> = {
   imageGeneratorPro: ["google", "openai", "openaiResponses"],
   imageGeneratorFast: ["google", "openai", "openaiResponses"],
+  imageGeneratorNB2: ["google", "openai", "openaiResponses"],
   dalleGenerator: ["openai"],
   fluxGenerator: ["openai"],
   gptImageGenerator: ["openai"],

@@ -45,6 +45,7 @@ export type WorkflowStatusCallback = (context: WorkflowExecutionContext) => void
 export const EXECUTABLE_NODE_TYPES = [
   "imageGeneratorProNode",
   "imageGeneratorFastNode",
+  "imageGeneratorNB2Node",
   "llmContentNode",
   "videoGeneratorNode",
   "pptContentNode",

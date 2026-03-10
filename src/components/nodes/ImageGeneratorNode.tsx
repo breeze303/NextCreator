@@ -22,6 +22,10 @@ const proPresetModels = [
 // Fast 节点预设模型选项
 const fastPresetModels = [
   { value: "gemini-2.5-flash-image", label: "NanoBanana" },
+];
+
+// NB2 节点预设模型选项
+const nb2PresetModels = [
   { value: "gemini-3.1-flash-image-preview", label: "NanoBanana2" },
 ];
 
@@ -48,19 +52,39 @@ const proAspectRatioOptions = [
   { value: "21:9", label: "21:9" },
 ];
 
+// NB2 宽高比选项（Pro 的基础上加 1:4, 4:1, 1:8, 8:1）
+const nb2AspectRatioOptions = [
+  ...proAspectRatioOptions,
+  { value: "1:4", label: "1:4" },
+  { value: "4:1", label: "4:1" },
+  { value: "1:8", label: "1:8" },
+  { value: "8:1", label: "8:1" },
+];
+
 const imageSizeOptions = [
   { value: "1K", label: "1K" },
   { value: "2K", label: "2K" },
   { value: "4K", label: "4K" },
 ];
 
+// NB2 分辨率选项（比 Pro 多 512）
+const nb2ImageSizeOptions = [
+  { value: "512", label: "512" },
+  { value: "1K", label: "1K" },
+  { value: "2K", label: "2K" },
+  { value: "4K", label: "4K" },
+];
+
+// 节点变体类型
+type NodeVariant = "pro" | "fast" | "nb2";
+
 // 通用图片生成器节点组件
 function ImageGeneratorBase({
   id,
   data,
   selected,
-  isPro,
-}: NodeProps<ImageGeneratorNode> & { isPro: boolean }) {
+  nodeVariant,
+}: NodeProps<ImageGeneratorNode> & { nodeVariant: NodeVariant }) {
   const { updateNodeData, getConnectedInputData, getConnectedInputDataAsync, getEmptyConnectedInputs, getConnectedImagesWithInfo } = useFlowStore();
   const [showPreview, setShowPreview] = useState(false);
   const [showErrorDetail, setShowErrorDetail] = useState(false);
@@ -80,10 +104,19 @@ function ImageGeneratorBase({
   const canvasIdRef = useRef<string | null>(null);
 
   // 获取对应的预设模型列表
-  const presetModels = isPro ? proPresetModels : fastPresetModels;
+  const presetModels = nodeVariant === "pro" ? proPresetModels : nodeVariant === "nb2" ? nb2PresetModels : fastPresetModels;
 
   // 默认模型
-  const defaultModel: ModelType = isPro ? "gemini-3-pro-image-preview" : "gemini-2.5-flash-image";
+  const defaultModel: ModelType = nodeVariant === "pro" ? "gemini-3-pro-image-preview" : nodeVariant === "nb2" ? "gemini-3.1-flash-image-preview" : "gemini-2.5-flash-image";
+
+  // 是否显示分辨率控制
+  const showImageSize = nodeVariant === "pro" || nodeVariant === "nb2";
+
+  // 当前使用的宽高比选项
+  const aspectRatioOptions = nodeVariant === "nb2" ? nb2AspectRatioOptions : nodeVariant === "pro" ? proAspectRatioOptions : basicAspectRatioOptions;
+
+  // 当前使用的分辨率选项
+  const currentImageSizeOptions = nodeVariant === "nb2" ? nb2ImageSizeOptions : imageSizeOptions;
 
   // 使用节点数据中的模型，如果没有则使用默认模型
   const model: ModelType = data.model || defaultModel;
@@ -153,8 +186,8 @@ function ImageGeneratorBase({
     });
 
     try {
-      // 根据 isPro 确定节点类型
-      const nodeType = isPro ? "imageGeneratorPro" : "imageGeneratorFast";
+      // 根据 nodeVariant 确定节点类型
+      const nodeType = nodeVariant === "pro" ? "imageGeneratorPro" : nodeVariant === "nb2" ? "imageGeneratorNB2" : "imageGeneratorFast";
 
       const response = images.length > 0
         ? await editImage({
@@ -162,13 +195,13 @@ function ImageGeneratorBase({
             model,
             inputImages: images,
             aspectRatio: data.aspectRatio,
-            imageSize: isPro ? data.imageSize : undefined,
+            imageSize: showImageSize ? data.imageSize : undefined,
           }, nodeType)
         : await generateImage({
             prompt,
             model,
             aspectRatio: data.aspectRatio,
-            imageSize: isPro ? data.imageSize : undefined,
+            imageSize: showImageSize ? data.imageSize : undefined,
           }, nodeType);
 
       if (response.imageData) {
@@ -268,13 +301,15 @@ function ImageGeneratorBase({
         errorDetails: undefined,
       });
     }
-  }, [id, model, data.aspectRatio, data.imageSize, isPro, updateNodeDataWithCanvas, getConnectedInputDataAsync, getConnectedImagesWithInfo]);
+  }, [id, model, data.aspectRatio, data.imageSize, nodeVariant, showImageSize, updateNodeDataWithCanvas, getConnectedInputDataAsync, getConnectedImagesWithInfo]);
 
   // 节点样式配置
-  const headerGradient = isPro
+  const headerGradient = nodeVariant === "pro"
     ? "bg-gradient-to-r from-purple-500 to-pink-500"
+    : nodeVariant === "nb2"
+    ? "bg-gradient-to-r from-cyan-500 to-blue-500"
     : "bg-gradient-to-r from-amber-500 to-orange-500";
-  const outputHandleColor = isPro ? "!bg-pink-500" : "!bg-orange-500";
+  const outputHandleColor = nodeVariant === "pro" ? "!bg-pink-500" : nodeVariant === "nb2" ? "!bg-blue-500" : "!bg-orange-500";
 
   return (
     <>
@@ -319,7 +354,9 @@ function ImageGeneratorBase({
         {/* 节点头部 */}
         <div className={`flex items-center justify-between px-3 py-2 ${headerGradient} rounded-t-lg`}>
           <div className="flex items-center gap-2">
-            {isPro ? (
+            {nodeVariant === "pro" ? (
+              <Sparkles className="w-4 h-4 text-white" />
+            ) : nodeVariant === "nb2" ? (
               <Sparkles className="w-4 h-4 text-white" />
             ) : (
               <Zap className="w-4 h-4 text-white" />
@@ -339,7 +376,7 @@ function ImageGeneratorBase({
                 <AlertTriangle className="w-4 h-4 text-yellow-300" />
               </div>
             )}
-            {isPro && (
+            {nodeVariant === "pro" && (
               <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-white">PRO</span>
             )}
           </div>
@@ -352,7 +389,7 @@ function ImageGeneratorBase({
             value={model}
             options={presetModels}
             onChange={handleModelChange}
-            variant={isPro ? "primary" : "warning"}
+            variant={nodeVariant === "pro" ? "primary" : nodeVariant === "nb2" ? "info" : "warning"}
             allowCustom={true}
             modelCategory="imageGenerator"
           />
@@ -362,14 +399,14 @@ function ImageGeneratorBase({
             <div>
               <label className="text-xs text-base-content/60 mb-0.5 block">宽高比</label>
               <div className="grid grid-cols-5 gap-1">
-                {(isPro ? proAspectRatioOptions : basicAspectRatioOptions).map((opt) => (
+                {aspectRatioOptions.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     className={`
                       btn btn-xs px-0
                       ${ (data.aspectRatio || "1:1") === opt.value
-                        ? (isPro ? "btn-primary" : "btn-warning")
+                        ? (nodeVariant === "pro" ? "btn-primary" : nodeVariant === "nb2" ? "btn-info" : "btn-warning")
                         : "btn-ghost bg-base-200"
                       }
                     `}
@@ -386,18 +423,18 @@ function ImageGeneratorBase({
                 ))}
               </div>
             </div>
-            {isPro && (
+            {showImageSize && (
               <div>
                 <label className="text-xs text-base-content/60 mb-0.5 block">分辨率</label>
-                <div className="grid grid-cols-3 gap-1">
-                  {imageSizeOptions.map((opt) => (
+                <div className={`grid ${nodeVariant === "nb2" ? "grid-cols-4" : "grid-cols-3"} gap-1`}>
+                  {currentImageSizeOptions.map((opt) => (
                     <button
                       key={opt.value}
                       type="button"
                       className={`
                         btn btn-xs
                         ${ (data.imageSize || "1K") === opt.value
-                          ? "btn-primary"
+                          ? (nodeVariant === "pro" ? "btn-primary" : "btn-info")
                           : "btn-ghost bg-base-200"
                         }
                       `}
@@ -422,7 +459,7 @@ function ImageGeneratorBase({
             className={`btn btn-sm w-full gap-2 ${
               data.status === "loading" || !isPromptConnected
                 ? "btn-disabled"
-                : isPro ? "btn-primary" : "btn-warning"
+                : nodeVariant === "pro" ? "btn-primary" : nodeVariant === "nb2" ? "btn-info" : "btn-warning"
             }`}
             onClick={handleGenerate}
             onPointerDown={(e) => e.stopPropagation()}
@@ -510,12 +547,18 @@ function ImageGeneratorBase({
 
 // NanoBanana Pro 节点 (支持 4K)
 export const ImageGeneratorProNode = memo((props: NodeProps<ImageGeneratorNode>) => {
-  return <ImageGeneratorBase {...props} isPro={true} />;
+  return <ImageGeneratorBase {...props} nodeVariant="pro" />;
 });
 ImageGeneratorProNode.displayName = "ImageGeneratorProNode";
 
 // NanoBanana 节点 (快速)
 export const ImageGeneratorFastNode = memo((props: NodeProps<ImageGeneratorNode>) => {
-  return <ImageGeneratorBase {...props} isPro={false} />;
+  return <ImageGeneratorBase {...props} nodeVariant="fast" />;
 });
 ImageGeneratorFastNode.displayName = "ImageGeneratorFastNode";
+
+// NanoBanana2 节点 (推荐首选)
+export const ImageGeneratorNB2Node = memo((props: NodeProps<ImageGeneratorNode>) => {
+  return <ImageGeneratorBase {...props} nodeVariant="nb2" />;
+});
+ImageGeneratorNB2Node.displayName = "ImageGeneratorNB2Node";

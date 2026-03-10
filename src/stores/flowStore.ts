@@ -477,7 +477,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           ...cleanedData,
           imagePath: undefined,  // 清除旧路径，保留 imageData 和 fileName
         };
-      } else if (node.type === "imageGeneratorProNode" || node.type === "imageGeneratorFastNode") {
+      } else if (node.type === "imageGeneratorProNode" || node.type === "imageGeneratorFastNode" || node.type === "imageGeneratorNB2Node") {
         cleanedData = {
           ...cleanedData,
           outputImagePath: undefined,  // 清除旧路径，保留 outputImage
@@ -532,7 +532,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           ...cleanedData,
           imagePath: undefined,  // 清除旧路径，保留 imageData 和 fileName
         };
-      } else if (node.type === "imageGeneratorProNode" || node.type === "imageGeneratorFastNode") {
+      } else if (node.type === "imageGeneratorProNode" || node.type === "imageGeneratorFastNode" || node.type === "imageGeneratorNB2Node") {
         cleanedData = {
           ...cleanedData,
           outputImagePath: undefined,  // 清除旧路径，保留 outputImage
@@ -899,7 +899,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           const data = sourceNode.data as { imageData?: string; imagePath?: string };
           imageData = data.imageData;
           hasImage = !!(data.imageData || data.imagePath);
-        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode") {
+        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
           // 支持从图片生成节点获取输出图片
           const data = sourceNode.data as { outputImage?: string; outputImagePath?: string };
           imageData = data.outputImage;
@@ -936,7 +936,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           if (data.imageData || data.imagePath) {
             images.push(data.imageData || "");
           }
-        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode") {
+        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
           const data = sourceNode.data as { outputImage?: string; outputImagePath?: string };
           // 同时检查 outputImage 和 outputImagePath
           if (data.outputImage || data.outputImagePath) {
@@ -1002,7 +1002,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           } else {
             imageData = data.imageData;
           }
-        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode") {
+        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
           const data = sourceNode.data as { outputImage?: string; outputImagePath?: string };
           // 优先从文件加载，否则使用内存中的数据
           if (data.outputImagePath) {
@@ -1054,7 +1054,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           if (imageData) {
             images.push(imageData);
           }
-        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode") {
+        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
           const data = sourceNode.data as { outputImage?: string; outputImagePath?: string };
           let imageData: string | undefined;
           if (data.outputImagePath) {
@@ -1114,7 +1114,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
               imagePath: data.imagePath,
             });
           }
-        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode") {
+        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
           const data = sourceNode.data as { outputImage?: string; label?: string; outputImagePath?: string };
           // 同时检查 outputImage 和 outputImagePath，任一有值则表示有图片
           if (data.outputImage || data.outputImagePath) {
@@ -1169,7 +1169,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
               imagePath: data.imagePath,
             });
           }
-        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode") {
+        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
           const data = sourceNode.data as { outputImage?: string; label?: string; outputImagePath?: string };
           let imageData: string | undefined;
           // 优先从文件加载
@@ -1256,7 +1256,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
               label: (data.label as string) || "图片输入",
             });
           }
-        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode") {
+        } else if (sourceNode.type === "imageGeneratorProNode" || sourceNode.type === "imageGeneratorFastNode" || sourceNode.type === "imageGeneratorNB2Node") {
           const data = sourceNode.data as { outputImage?: string; outputImagePath?: string; label?: string };
           // 同时检查 outputImage 和 outputImagePath，任一有值则不为空
           if (!data.outputImage && !data.outputImagePath) {
