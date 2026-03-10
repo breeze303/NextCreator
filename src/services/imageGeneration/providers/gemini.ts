@@ -1,8 +1,9 @@
 /**
  * 图片生成框架 - Gemini 提供商实现
  *
- * 支持 NanoBanana Pro (gemini-3-pro-image-preview) 和
- * NanoBanana (gemini-2.5-flash-image) 两种模型
+ * 支持 NanoBanana Pro (gemini-3-pro-image-preview)、
+ * NanoBanana (gemini-2.5-flash-image) 和
+ * NanoBanana2 (gemini-3.1-flash-image-preview) 三种模型
  */
 
 import { invoke } from "@tauri-apps/api/core";

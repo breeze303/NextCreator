@@ -117,6 +117,7 @@ export const DEFAULT_OUTLINE_MODEL = "gemini-3-pro-preview";
 // 页面图片生成模型 - 预设选项
 export const IMAGE_PRESET_MODELS = [
   { value: "gemini-2.5-flash-image", label: "NanoBanana" },
+  { value: "gemini-3.1-flash-image-preview", label: "NanoBanana2" },
   { value: "gemini-3-pro-image-preview", label: "NanoBanana Pro(推荐)" },
 ];
 

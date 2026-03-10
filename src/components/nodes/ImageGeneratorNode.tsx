@@ -22,6 +22,7 @@ const proPresetModels = [
 // Fast 节点预设模型选项
 const fastPresetModels = [
   { value: "gemini-2.5-flash-image", label: "NanoBanana" },
+  { value: "gemini-3.1-flash-image-preview", label: "NanoBanana2" },
 ];
 
 // 基础宽高比选项（NanoBanana 使用）
