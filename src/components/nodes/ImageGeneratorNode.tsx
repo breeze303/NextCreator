@@ -9,6 +9,7 @@ import { ImagePreviewModal } from "@/components/ui/ImagePreviewModal";
 import { ErrorDetailModal } from "@/components/ui/ErrorDetailModal";
 import { ModelSelector } from "@/components/ui/ModelSelector";
 import { useLoadingDots } from "@/hooks/useLoadingDots";
+import { useNodeConnectionStatus } from "@/hooks/useNodeConnectionStatus";
 import type { ImageGeneratorNodeData, ImageInputNodeData, ModelType } from "@/types";
 
 // 定义节点类型
@@ -85,20 +86,15 @@ function ImageGeneratorBase({
   selected,
   nodeVariant,
 }: NodeProps<ImageGeneratorNode> & { nodeVariant: NodeVariant }) {
-  const { updateNodeData, getConnectedInputData, getConnectedInputDataAsync, getEmptyConnectedInputs, getConnectedImagesWithInfo } = useFlowStore();
+  const { updateNodeData, getConnectedInputDataAsync, getConnectedImagesWithInfo } = useFlowStore();
   const [showPreview, setShowPreview] = useState(false);
   const [showErrorDetail, setShowErrorDetail] = useState(false);
 
   // 省略号加载动画
   const dots = useLoadingDots(data.status === "loading");
 
-  // 检测空输入连接
-  const emptyInputs = getEmptyConnectedInputs(id);
-  const hasEmptyImageInputs = emptyInputs.emptyImages.length > 0;
-
-  // 检测是否连接了提示词（包括空提示词的情况）
-  const { prompt } = getConnectedInputData(id);
-  const isPromptConnected = prompt !== undefined;
+  // 使用缓存的连接状态检测，避免每次渲染遍历全图
+  const { isPromptConnected, hasEmptyImageInputs, emptyImageLabels } = useNodeConnectionStatus(id);
 
   // 保存生成时的画布 ID，用于确保结果更新到正确的画布
   const canvasIdRef = useRef<string | null>(null);
@@ -382,7 +378,7 @@ function ImageGeneratorBase({
             )}
             {/* 空输入警告图标 */}
             {isPromptConnected && hasEmptyImageInputs && (
-              <div className="tooltip tooltip-left" data-tip={`图片输入为空: ${emptyInputs.emptyImages.map(i => i.label).join(", ")}`}>
+              <div className="tooltip tooltip-left" data-tip={`图片输入为空: ${emptyImageLabels.join(", ")}`}>
                 <AlertTriangle className="w-4 h-4 text-yellow-300" />
               </div>
             )}

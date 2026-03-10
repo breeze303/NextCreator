@@ -9,6 +9,7 @@ import { ImagePreviewModal } from "@/components/ui/ImagePreviewModal";
 import { ErrorDetailModal } from "@/components/ui/ErrorDetailModal";
 import { ModelSelector } from "@/components/ui/ModelSelector";
 import { useLoadingDots } from "@/hooks/useLoadingDots";
+import { useNodeConnectionStatus } from "@/hooks/useNodeConnectionStatus";
 import type { ModelType, ErrorDetails } from "@/types";
 
 // Z-Image 节点数据类型
@@ -49,16 +50,15 @@ function ZImageGeneratorBase({
   data,
   selected,
 }: NodeProps<ZImageGeneratorNode>) {
-  const { updateNodeData, getConnectedInputData, getConnectedInputDataAsync } = useFlowStore();
+  const { updateNodeData, getConnectedInputDataAsync } = useFlowStore();
   const [showPreview, setShowPreview] = useState(false);
   const [showErrorDetail, setShowErrorDetail] = useState(false);
 
   // 省略号加载动画
   const dots = useLoadingDots(data.status === "loading");
 
-  // 检测是否连接了提示词
-  const { prompt } = getConnectedInputData(id);
-  const isPromptConnected = prompt !== undefined;
+  // 使用缓存的连接状态检测，避免每次渲染遍历全图
+  const { isPromptConnected } = useNodeConnectionStatus(id);
 
   // 保存生成时的画布 ID
   const canvasIdRef = useRef<string | null>(null);

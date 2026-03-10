@@ -160,41 +160,59 @@ export const useCanvasStore = create<CanvasStore>()(
       },
       partialize: (state) => {
         // 清除有文件路径的节点的 base64 数据以减少存储大小
-        const canvasesForStorage = state.canvases.map((canvas) => ({
-          ...canvas,
-          nodes: canvas.nodes.map((node) => {
-            // 图片生成节点：有文件路径时清理 base64
+        // 优化：只对包含需要清理的节点的画布进行浅拷贝
+        const canvasesForStorage = state.canvases.map((canvas) => {
+          // 快速检查是否有需要清理的节点
+          const hasNodesToClean = canvas.nodes.some((node) => {
             if (
               (node.type === "imageGeneratorProNode" ||
                 node.type === "imageGeneratorFastNode") &&
-              (node.data as ImageGeneratorNodeData).outputImagePath
+              (node.data as ImageGeneratorNodeData).outputImagePath &&
+              (node.data as ImageGeneratorNodeData).outputImage
             ) {
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  outputImage: undefined,
-                },
-              };
+              return true;
             }
-
-            // 图片输入节点：有文件路径时同樣只持久化路徑
             if (
               node.type === "imageInputNode" &&
-              (node.data as ImageInputNodeData).imagePath
+              (node.data as ImageInputNodeData).imagePath &&
+              (node.data as ImageInputNodeData).imageData
             ) {
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  imageData: undefined,
-                },
-              };
+              return true;
             }
+            return false;
+          });
 
-            return node;
-          }),
-        }));
+          // 无需清理的画布直接返回原引用，避免不必要的拷贝
+          if (!hasNodesToClean) return canvas;
+
+          return {
+            ...canvas,
+            nodes: canvas.nodes.map((node) => {
+              if (
+                (node.type === "imageGeneratorProNode" ||
+                  node.type === "imageGeneratorFastNode") &&
+                (node.data as ImageGeneratorNodeData).outputImagePath &&
+                (node.data as ImageGeneratorNodeData).outputImage
+              ) {
+                return {
+                  ...node,
+                  data: { ...node.data, outputImage: undefined },
+                };
+              }
+              if (
+                node.type === "imageInputNode" &&
+                (node.data as ImageInputNodeData).imagePath &&
+                (node.data as ImageInputNodeData).imageData
+              ) {
+                return {
+                  ...node,
+                  data: { ...node.data, imageData: undefined },
+                };
+              }
+              return node;
+            }),
+          };
+        });
 
         return {
           canvases: canvasesForStorage,

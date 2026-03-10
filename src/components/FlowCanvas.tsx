@@ -48,41 +48,42 @@ export function FlowCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance<CustomNode> | null>(null);
 
-  const {
-    nodes,
-    edges,
-    selectedNodeIds,
-    selectedEdgeIds,
-    onNodesChange,
-    onEdgesChange,
-    onConnect,
-    addNode,
-    addPromptTemplate,
-    setSelectedNode,
-    setSelectedNodes,
-    setSelectedEdges,
-    removeNode,
-    removeNodes,
-    removeEdge,
-    removeEdges,
-    duplicateNodes,
-    copySelectedNodes,
-    pasteNodes,
-    toggleNodeLock,
-    alignNodes,
-    distributeNodes,
-    autoLayout,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    selectAll,
-    clearSelection,
-    clipboard,
-    isValidConnection,
-    executeFromNode,
-    updateNodeData,
-  } = useFlowStore();
+  // 数据字段：用 selector 单独订阅，避免不相关状态变化触发重渲染
+  const nodes = useFlowStore((s) => s.nodes);
+  const edges = useFlowStore((s) => s.edges);
+  const selectedNodeIds = useFlowStore((s) => s.selectedNodeIds);
+  const selectedEdgeIds = useFlowStore((s) => s.selectedEdgeIds);
+  const clipboard = useFlowStore((s) => s.clipboard);
+
+  // 方法引用：zustand 中函数引用是稳定的，统一获取不会导致额外重渲染
+  const onNodesChange = useFlowStore((s) => s.onNodesChange);
+  const onEdgesChange = useFlowStore((s) => s.onEdgesChange);
+  const onConnect = useFlowStore((s) => s.onConnect);
+  const addNode = useFlowStore((s) => s.addNode);
+  const addPromptTemplate = useFlowStore((s) => s.addPromptTemplate);
+  const setSelectedNode = useFlowStore((s) => s.setSelectedNode);
+  const setSelectedNodes = useFlowStore((s) => s.setSelectedNodes);
+  const setSelectedEdges = useFlowStore((s) => s.setSelectedEdges);
+  const removeNode = useFlowStore((s) => s.removeNode);
+  const removeNodes = useFlowStore((s) => s.removeNodes);
+  const removeEdge = useFlowStore((s) => s.removeEdge);
+  const removeEdges = useFlowStore((s) => s.removeEdges);
+  const duplicateNodes = useFlowStore((s) => s.duplicateNodes);
+  const copySelectedNodes = useFlowStore((s) => s.copySelectedNodes);
+  const pasteNodes = useFlowStore((s) => s.pasteNodes);
+  const toggleNodeLock = useFlowStore((s) => s.toggleNodeLock);
+  const alignNodes = useFlowStore((s) => s.alignNodes);
+  const distributeNodes = useFlowStore((s) => s.distributeNodes);
+  const autoLayout = useFlowStore((s) => s.autoLayout);
+  const undo = useFlowStore((s) => s.undo);
+  const redo = useFlowStore((s) => s.redo);
+  const canUndo = useFlowStore((s) => s.canUndo);
+  const canRedo = useFlowStore((s) => s.canRedo);
+  const selectAll = useFlowStore((s) => s.selectAll);
+  const clearSelection = useFlowStore((s) => s.clearSelection);
+  const isValidConnection = useFlowStore((s) => s.isValidConnection);
+  const executeFromNode = useFlowStore((s) => s.executeFromNode);
+  const updateNodeData = useFlowStore((s) => s.updateNodeData);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   // 裁剪模式状态

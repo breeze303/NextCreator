@@ -51,13 +51,55 @@ async function getItem(key: string): Promise<string | null> {
   }
 }
 
+// save 防抖：合并高频写入，避免频繁磁盘 I/O
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let savePending = false;
+
+function debouncedSave(store: NonNullable<Awaited<ReturnType<typeof getStore>>>) {
+  savePending = true;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (savePending) {
+      savePending = false;
+      try {
+        await store.save();
+      } catch (error) {
+        console.error("Storage save error:", error);
+      }
+    }
+  }, 500);
+}
+
+// 立即刷盘：清除防抖计时器并同步写入磁盘
+// 用于应用关闭前确保数据不丢失
+async function flushSave() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  if (savePending && storeInstance) {
+    savePending = false;
+    try {
+      await storeInstance.save();
+    } catch (error) {
+      console.error("Storage flush save error:", error);
+    }
+  }
+}
+
+// 应用关闭前立即刷盘，防止防抖导致数据丢失
+window.addEventListener("beforeunload", () => {
+  flushSave();
+});
+
 // 设置数据
 async function setItem(key: string, value: string): Promise<void> {
   try {
     const store = await getStore();
     if (store) {
       await store.set(key, value);
-      await store.save();
+      // 防抖写入磁盘，500ms 内多次 set 只触发一次 save
+      debouncedSave(store);
     }
   } catch (error) {
     console.error("Storage setItem error:", error);
@@ -83,3 +125,6 @@ export const tauriStorage = {
   setItem,
   removeItem,
 };
+
+// 导出 flushSave 供外部在关键时机（如画布切换前）调用
+export { flushSave };

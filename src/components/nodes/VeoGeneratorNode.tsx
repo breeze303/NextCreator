@@ -25,6 +25,7 @@ import { useCanvasStore } from "@/stores/canvasStore";
 import type { VideoTaskStage } from "@/services/videoGeneration";
 import { taskManager } from "@/services/taskManager";
 import { useLoadingDots } from "@/hooks/useLoadingDots";
+import { useNodeConnectionStatus } from "@/hooks/useNodeConnectionStatus";
 import { ErrorDetailModal } from "@/components/ui/ErrorDetailModal";
 import { useCustomModelStore } from "@/stores/customModelStore";
 import type { ErrorDetails } from "@/types";
@@ -99,7 +100,7 @@ const stageConfig: Record<VideoTaskStage, { label: string; color: string }> = {
 };
 
 export const VeoGeneratorNode = memo(({ id, data, selected }: NodeProps<VeoGeneratorNode>) => {
-  const { updateNodeData, getConnectedInputData, getConnectedInputDataAsync, getEmptyConnectedInputs } = useFlowStore();
+  const { updateNodeData, getConnectedInputDataAsync } = useFlowStore();
   const activeCanvasId = useCanvasStore((state) => state.activeCanvasId);
   const [previewState, setPreviewState] = useState<"idle" | "loading" | "ready">("idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -112,9 +113,8 @@ export const VeoGeneratorNode = memo(({ id, data, selected }: NodeProps<VeoGener
   // 省略号加载动画
   const dots = useLoadingDots(data.status === "loading" || previewState === "loading" || isDownloading);
 
-  // 检测空输入连接
-  const emptyInputs = getEmptyConnectedInputs(id);
-  const hasEmptyImageInputs = emptyInputs.emptyImages.length > 0;
+  // 使用缓存的连接状态检测，避免每次渲染遍历全图
+  const { isPromptConnected, hasEmptyImageInputs, emptyImageLabels } = useNodeConnectionStatus(id);
 
   // 当前模型和模式
   const currentModel = data.model || "veo-3.1-fast-generate-preview";
@@ -126,10 +126,6 @@ export const VeoGeneratorNode = memo(({ id, data, selected }: NodeProps<VeoGener
     const preset = presetModels.find((m) => m.value === currentModel);
     return preset ? preset.label : currentModel;
   };
-
-  // 检测是否连接了提示词
-  const { prompt: connectedPrompt } = getConnectedInputData(id);
-  const isPromptConnected = !!connectedPrompt;
 
   // 清理函数 - 清理预览 URL
   useEffect(() => {
@@ -558,7 +554,7 @@ export const VeoGeneratorNode = memo(({ id, data, selected }: NodeProps<VeoGener
               </div>
             )}
             {isPromptConnected && hasEmptyImageInputs && (
-              <div className="tooltip tooltip-left" data-tip={`图片输入为空: ${emptyInputs.emptyImages.map(i => i.label).join(", ")}`}>
+              <div className="tooltip tooltip-left" data-tip={`图片输入为空: ${emptyImageLabels.join(", ")}`}>
                 <AlertTriangle className="w-4 h-4 text-yellow-300" />
               </div>
             )}

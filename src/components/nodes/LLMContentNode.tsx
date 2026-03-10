@@ -7,6 +7,7 @@ import { useFlowStore } from "@/stores/flowStore";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { generateLLMContent } from "@/services/llmService";
 import { useLoadingDots } from "@/hooks/useLoadingDots";
+import { useNodeConnectionStatus } from "@/hooks/useNodeConnectionStatus";
 import { useLLMPresetModels } from "@/config/presetModels";
 import { ErrorDetailModal } from "@/components/ui/ErrorDetailModal";
 import { useCustomModelStore } from "@/stores/customModelStore";
@@ -16,7 +17,7 @@ import type { LLMContentNodeData } from "@/types";
 type LLMContentNode = Node<LLMContentNodeData>;
 
 export const LLMContentNode = memo(({ id, data, selected }: NodeProps<LLMContentNode>) => {
-  const { updateNodeData, getConnectedInputData, getConnectedInputDataAsync, getConnectedFilesWithInfo, getConnectedImagesWithInfo, getEmptyConnectedInputs } = useFlowStore();
+  const { updateNodeData, getConnectedInputDataAsync, getConnectedFilesWithInfo, getConnectedImagesWithInfo } = useFlowStore();
   const [copied, setCopied] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
   const [showErrorDetail, setShowErrorDetail] = useState(false);
@@ -28,13 +29,13 @@ export const LLMContentNode = memo(({ id, data, selected }: NodeProps<LLMContent
   // 获取当前供应商的预设模型列表
   const { presetModels } = useLLMPresetModels("llmContent");
 
-  // 检测空输入连接
-  const emptyInputs = getEmptyConnectedInputs(id);
-  const hasEmptyInputs = emptyInputs.emptyImages.length > 0 || emptyInputs.emptyFiles.length > 0;
-
-  // 检测是否有任何有效输入（提示词、图片或文件）
-  const { prompt, images, files } = getConnectedInputData(id);
-  const hasAnyInput = (prompt !== undefined) || images.length > 0 || files.length > 0;
+  // 使用缓存的连接状态检测，避免每次渲染遍历全图
+  const {
+    isPromptConnected, hasEmptyImageInputs, emptyImageLabels,
+    hasImageInputs, hasFileInputs, hasEmptyFileInputs, emptyFileLabels,
+  } = useNodeConnectionStatus(id);
+  const hasEmptyInputs = hasEmptyImageInputs || hasEmptyFileInputs;
+  const hasAnyInput = isPromptConnected || hasImageInputs || hasFileInputs;
 
   // 预览弹窗进入动画
   useEffect(() => {
@@ -276,8 +277,8 @@ export const LLMContentNode = memo(({ id, data, selected }: NodeProps<LLMContent
             <div
               className="tooltip tooltip-left"
               data-tip={`输入为空: ${[
-                ...emptyInputs.emptyImages.map(i => `图片-${i.label}`),
-                ...emptyInputs.emptyFiles.map(f => `文件-${f.label}`),
+                ...emptyImageLabels.map(l => `图片-${l}`),
+                ...emptyFileLabels.map(l => `文件-${l}`),
               ].join(", ")}`}
             >
               <AlertTriangle className="w-4 h-4 text-yellow-300" />

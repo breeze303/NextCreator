@@ -7,6 +7,7 @@ import { useCanvasStore } from "@/stores/canvasStore";
 import { createVideoTask, getVideoContentBlobUrl, downloadVideo, type VideoTaskStage } from "@/services/videoGeneration";
 import { taskManager } from "@/services/taskManager";
 import { useLoadingDots } from "@/hooks/useLoadingDots";
+import { useNodeConnectionStatus } from "@/hooks/useNodeConnectionStatus";
 import { ErrorDetailModal } from "@/components/ui/ErrorDetailModal";
 import { useCustomModelStore } from "@/stores/customModelStore";
 import type { VideoGeneratorNodeData, VideoModelType, VideoSizeType } from "@/types";
@@ -59,7 +60,7 @@ const stageConfig: Record<VideoTaskStage, { label: string; color: string }> = {
 };
 
 export const VideoGeneratorNode = memo(({ id, data, selected }: NodeProps<VideoGeneratorNode>) => {
-  const { updateNodeData, getConnectedInputData, getConnectedInputDataAsync, getEmptyConnectedInputs } = useFlowStore();
+  const { updateNodeData, getConnectedInputDataAsync } = useFlowStore();
   const activeCanvasId = useCanvasStore((state) => state.activeCanvasId);
   const [previewState, setPreviewState] = useState<"idle" | "loading" | "ready">("idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -72,9 +73,8 @@ export const VideoGeneratorNode = memo(({ id, data, selected }: NodeProps<VideoG
   // 省略号加载动画
   const dots = useLoadingDots(data.status === "loading" || previewState === "loading" || isDownloading);
 
-  // 检测空输入连接
-  const emptyInputs = getEmptyConnectedInputs(id);
-  const hasEmptyImageInputs = emptyInputs.emptyImages.length > 0;
+  // 使用缓存的连接状态检测，避免每次渲染遍历全图
+  const { isPromptConnected, hasEmptyImageInputs, emptyImageLabels } = useNodeConnectionStatus(id);
 
   // 当前模型
   const currentModel = data.model || "sora-2";
@@ -84,10 +84,6 @@ export const VideoGeneratorNode = memo(({ id, data, selected }: NodeProps<VideoG
     const preset = presetModels.find((m) => m.value === currentModel);
     return preset ? preset.label : currentModel;
   };
-
-  // 检测是否连接了提示词
-  const { prompt: connectedPrompt } = getConnectedInputData(id);
-  const isPromptConnected = !!connectedPrompt;
 
   // 清理函数 - 清理预览 URL
   useEffect(() => {
@@ -306,7 +302,7 @@ export const VideoGeneratorNode = memo(({ id, data, selected }: NodeProps<VideoG
             )}
             {/* 空输入警告图标 */}
             {isPromptConnected && hasEmptyImageInputs && (
-              <div className="tooltip tooltip-left" data-tip={`图片输入为空: ${emptyInputs.emptyImages.map(i => i.label).join(", ")}`}>
+              <div className="tooltip tooltip-left" data-tip={`图片输入为空: ${emptyImageLabels.join(", ")}`}>
                 <AlertTriangle className="w-4 h-4 text-yellow-300" />
               </div>
             )}

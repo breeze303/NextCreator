@@ -50,6 +50,37 @@ interface HistoryState {
   edges: CustomEdge[];
 }
 
+/**
+ * 创建轻量化的节点快照，用于历史记录
+ * 清除大体积的二进制数据（base64 图片等），只保留文件路径引用
+ * 这样撤销/重做时节点结构完整，图片通过 path 从文件系统加载
+ */
+function createLightweightSnapshot(nodes: CustomNode[], edges: CustomEdge[]): HistoryState {
+  const lightNodes = nodes.map(node => {
+    const { data } = node;
+    // 检查是否有需要清除的大体积字段
+    const hasHeavyData = 'imageData' in data || 'outputImage' in data
+      || 'maskImageData' in data || 'fileData' in data;
+    if (!hasHeavyData) return node;
+
+    return {
+      ...node,
+      data: {
+        ...data,
+        imageData: undefined,
+        outputImage: undefined,
+        maskImageData: undefined,
+        fileData: undefined,
+      },
+    };
+  }) as CustomNode[];
+
+  return {
+    nodes: structuredClone(lightNodes),
+    edges: structuredClone(edges),
+  };
+}
+
 interface FlowStore {
   nodes: CustomNode[];
   edges: CustomEdge[];
@@ -472,8 +503,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
     set({
       clipboard: {
-        nodes: JSON.parse(JSON.stringify(selectedNodes)),
-        edges: JSON.parse(JSON.stringify(relatedEdges)),
+        nodes: structuredClone(selectedNodes),
+        edges: structuredClone(relatedEdges),
       },
     });
   },
@@ -598,10 +629,8 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     const { nodes, edges, history, historyIndex, maxHistoryLength } = get();
     // 截断历史到当前位置，添加新状态
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({
-      nodes: JSON.parse(JSON.stringify(nodes)),
-      edges: JSON.parse(JSON.stringify(edges)),
-    });
+    // 使用轻量化快照，排除 base64 等大体积数据，避免内存膨胀
+    newHistory.push(createLightweightSnapshot(nodes, edges));
 
     // 限制历史长度
     if (newHistory.length > maxHistoryLength) {
@@ -620,10 +649,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
 
     // 如果是第一次撤销，先保存当前状态
     if (historyIndex === history.length - 1) {
-      const newHistory = [...history, {
-        nodes: JSON.parse(JSON.stringify(nodes)),
-        edges: JSON.parse(JSON.stringify(edges)),
-      }];
+      const newHistory = [...history, createLightweightSnapshot(nodes, edges)];
       set({
         history: newHistory,
         historyIndex: historyIndex,

@@ -22,8 +22,17 @@ initializeImageGenerationProviders();
 initializeVideoGenerationProviders();
 
 function App() {
-  const { activeCanvasId, getActiveCanvas, createCanvas, updateCanvasData, canvases, _hasHydrated } = useCanvasStore();
-  const { nodes, edges, setNodes, setEdges } = useFlowStore();
+  // 细粒度 selector 订阅，避免不相关状态变化触发重渲染
+  const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
+  const getActiveCanvas = useCanvasStore((s) => s.getActiveCanvas);
+  const createCanvas = useCanvasStore((s) => s.createCanvas);
+  const updateCanvasData = useCanvasStore((s) => s.updateCanvasData);
+  const canvases = useCanvasStore((s) => s.canvases);
+  const _hasHydrated = useCanvasStore((s) => s._hasHydrated);
+  const nodes = useFlowStore((s) => s.nodes);
+  const edges = useFlowStore((s) => s.edges);
+  const setNodes = useFlowStore((s) => s.setNodes);
+  const setEdges = useFlowStore((s) => s.setEdges);
   const theme = useSettingsStore((state) => state.settings.theme);
 
   // 帮助面板状态
@@ -66,9 +75,25 @@ function App() {
     }
   }, [_hasHydrated, canvases.length, createCanvas]);
 
-  // 切换画布时加载画布数据
+  // 切换画布时：先保存旧画布数据，再加载新画布
   useEffect(() => {
     if (activeCanvasId && activeCanvasId !== prevCanvasIdRef.current) {
+      // 切换前先将当前 flowStore 的数据同步到旧画布，避免防抖丢数据
+      const prevId = prevCanvasIdRef.current;
+      if (prevId) {
+        const currentNodes = useFlowStore.getState().nodes;
+        const currentEdges = useFlowStore.getState().edges;
+        // 注意：此时 activeCanvasId 已经是新画布 ID，
+        // 必须用 prevId 直接定位旧画布进行更新
+        useCanvasStore.setState((state) => ({
+          canvases: state.canvases.map((c) =>
+            c.id === prevId
+              ? { ...c, nodes: currentNodes, edges: currentEdges, updatedAt: Date.now() }
+              : c
+          ),
+        }));
+      }
+
       isLoadingCanvasRef.current = true;
       prevCanvasIdRef.current = activeCanvasId;
 
@@ -91,10 +116,11 @@ function App() {
     if (isLoadingCanvasRef.current || !activeCanvasId) return;
 
     // 使用防抖来减少频繁更新
-    // 300ms 延迟：平衡性能和数据安全，避免应用关闭时数据丢失
+    // 800ms 延迟：拖动节点时避免高频触发 persist 链路
+    // 数据安全由 tauriStorage 的 save 防抖兜底
     const timer = setTimeout(() => {
       updateCanvasData(nodes, edges);
-    }, 300);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [nodes, edges, activeCanvasId, updateCanvasData]);

@@ -38,17 +38,16 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onDragStart }: SidebarProps) {
-  const {
-    canvases,
-    activeCanvasId,
-    sidebarView,
-    setSidebarView,
-    createCanvas,
-    deleteCanvas,
-    renameCanvas,
-    switchCanvas,
-    duplicateCanvas,
-  } = useCanvasStore();
+  // 细粒度 selector 订阅，避免不相关状态变化触发重渲染
+  const canvases = useCanvasStore((s) => s.canvases);
+  const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
+  const sidebarView = useCanvasStore((s) => s.sidebarView);
+  const setSidebarView = useCanvasStore((s) => s.setSidebarView);
+  const createCanvas = useCanvasStore((s) => s.createCanvas);
+  const deleteCanvas = useCanvasStore((s) => s.deleteCanvas);
+  const renameCanvas = useCanvasStore((s) => s.renameCanvas);
+  const switchCanvas = useCanvasStore((s) => s.switchCanvas);
+  const duplicateCanvas = useCanvasStore((s) => s.duplicateCanvas);
 
   // 画布相关状态
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -205,31 +204,37 @@ export function Sidebar({ onDragStart }: SidebarProps) {
     setIsPreviewModalOpen(false);
   }, []);
 
-  // 过滤节点
-  const filteredCategories = nodeCategories
-    .map((category) => ({
-      ...category,
-      nodes: category.nodes.filter(
-        (node) =>
-          node.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          node.description.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    }))
-    .filter((category) => category.nodes.length > 0);
+  // 过滤节点（缓存计算结果，仅搜索词变化时重新计算）
+  const filteredCategories = useMemo(() =>
+    nodeCategories
+      .map((category) => ({
+        ...category,
+        nodes: category.nodes.filter(
+          (node) =>
+            node.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            node.description.toLowerCase().includes(searchQuery.toLowerCase())
+        ),
+      }))
+      .filter((category) => category.nodes.length > 0),
+    [searchQuery]
+  );
 
-  // 过滤提示词
-  const filteredPromptCategories = promptCategories
-    .map((category) => ({
-      ...category,
-      prompts: category.prompts.filter(
-        (prompt) =>
-          prompt.title.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
-          prompt.titleEn.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
-          prompt.description.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
-          prompt.tags.some((tag) => tag.toLowerCase().includes(promptSearchQuery.toLowerCase()))
-      ),
-    }))
-    .filter((category) => category.prompts.length > 0);
+  // 过滤提示词（缓存计算结果，仅搜索词变化时重新计算）
+  const filteredPromptCategories = useMemo(() =>
+    promptCategories
+      .map((category) => ({
+        ...category,
+        prompts: category.prompts.filter(
+          (prompt) =>
+            prompt.title.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
+            prompt.titleEn.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
+            prompt.description.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
+            prompt.tags.some((tag) => tag.toLowerCase().includes(promptSearchQuery.toLowerCase()))
+        ),
+      }))
+      .filter((category) => category.prompts.length > 0),
+    [promptSearchQuery]
+  );
 
   // 获取当前打开菜单的画布
   const menuCanvas = menuOpenId ? canvases.find((c) => c.id === menuOpenId) : null;
