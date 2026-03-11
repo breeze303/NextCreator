@@ -3,7 +3,7 @@
   <h1>NextCreator</h1>
   <p>基于可视化节点的 AI 内容生成工作流工具</p>
 
-  ![Version](https://img.shields.io/badge/version-0.2.4-blue.svg)
+  ![Version](https://img.shields.io/badge/version-0.2.5-blue.svg)
   ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)
   ![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB.svg?logo=tauri&logoColor=white)
   ![License](https://img.shields.io/badge/license-AGPL%20v3-blue.svg)
@@ -16,6 +16,7 @@
 - **节点编辑器** - 拖拽式工作流设计，支持撤销/重做、复制粘贴、自动布局
 - **多画布管理** - 创建多个独立画布，数据自动持久化
 - **AI 图片生成** - 支持 NanoBanana Z-Image Dall-e GPT-Image 豆包Image Flux文生图、图生图
+- **图片蒙版重绘** - 在图片输入节点上直接涂抹蒙版，精准选定区域后交由 AI 局部重绘
 - **AI 视频生成** - 基于 Sora Veo Kling 模型的视频生成
 - **LLM 文本生成** - 支持多模态输入（文本/图片/PDF）
 - **PPT 工作流** - 自动生成大纲、PPT页面，导出可编辑文字的 PPTX
@@ -45,6 +46,11 @@
 
 **Pormpt 提示词库** - 内置几十种提示词，可以拖拽至画布，快速开始使用
 ![Prompt 库](docs/images/prompt.png)
+
+### 图片蒙版重绘
+
+**蒙版绘制** - 在图片输入节点内直接用画笔涂抹需要修改的区域（红色高亮标记），再连接图片生成节点，AI 将只对选中区域进行局部重绘，其余部分保持不变。
+![图片蒙版重绘](docs/images/mask.png)
 
 ## 快速开始
 

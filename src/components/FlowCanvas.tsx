@@ -404,7 +404,7 @@ export function FlowCanvas() {
   );
 
   // 平移/缩放结束后吸附到干净坐标，防止非整数 scale/translate 导致 WKWebView 模糊
-  const onMoveEnd = useCallback((_event: MouseEvent | TouchEvent, viewport: Viewport) => {
+  const onMoveEnd = useCallback((_event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
     const snapped = snapViewport(viewport.x, viewport.y, viewport.zoom);
     if (snapped.x !== viewport.x || snapped.y !== viewport.y || snapped.zoom !== viewport.zoom) {
       reactFlowInstance.current?.setViewport(snapped, { duration: 0 });
