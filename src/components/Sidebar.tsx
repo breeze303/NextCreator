@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, memo } from "react";
 import { createPortal } from "react-dom";
 import {
   LayoutGrid,
@@ -37,7 +37,7 @@ interface SidebarProps {
   onDragStart: (event: React.DragEvent, nodeType: string, defaultData: Record<string, unknown>) => void;
 }
 
-export function Sidebar({ onDragStart }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
   // 细粒度 selector 订阅，避免不相关状态变化触发重渲染
   const canvases = useCanvasStore((s) => s.canvases);
   const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
@@ -856,4 +856,4 @@ export function Sidebar({ onDragStart }: SidebarProps) {
     />
     </>
   );
-}
+});

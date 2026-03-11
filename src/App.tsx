@@ -26,11 +26,10 @@ function App() {
   const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
   const getActiveCanvas = useCanvasStore((s) => s.getActiveCanvas);
   const createCanvas = useCanvasStore((s) => s.createCanvas);
-  const updateCanvasData = useCanvasStore((s) => s.updateCanvasData);
   const canvases = useCanvasStore((s) => s.canvases);
   const _hasHydrated = useCanvasStore((s) => s._hasHydrated);
-  const nodes = useFlowStore((s) => s.nodes);
-  const edges = useFlowStore((s) => s.edges);
+  // nodes/edges 不订阅到 React 状态——改用 store.subscribe 做数据同步
+  // 避免每次节点变化都触发 App 重渲染（进而引发 Sidebar 等子树重渲染）
   const setNodes = useFlowStore((s) => s.setNodes);
   const setEdges = useFlowStore((s) => s.setEdges);
   const theme = useSettingsStore((state) => state.settings.theme);
@@ -110,20 +109,28 @@ function App() {
     }
   }, [activeCanvasId, getActiveCanvas, setNodes, setEdges]);
 
-  // 同步节点和边的变化到画布存储（防抖处理）
+  // 同步节点/边到画布存储：用 store.subscribe 替代 React effect+订阅
+  // 好处：节点拖拽/编辑不触发 App 重渲染，只在后台防抖同步数据
   useEffect(() => {
-    // 如果正在加载画布数据，不进行同步
-    if (isLoadingCanvasRef.current || !activeCanvasId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-    // 使用防抖来减少频繁更新
-    // 800ms 延迟：拖动节点时避免高频触发 persist 链路
-    // 数据安全由 tauriStorage 的 save 防抖兜底
-    const timer = setTimeout(() => {
-      updateCanvasData(nodes, edges);
-    }, 800);
+    const unsubscribe = useFlowStore.subscribe((state, prevState) => {
+      if (state.nodes === prevState.nodes && state.edges === prevState.edges) return;
+      if (isLoadingCanvasRef.current) return;
+      if (!useCanvasStore.getState().activeCanvasId) return;
 
-    return () => clearTimeout(timer);
-  }, [nodes, edges, activeCanvasId, updateCanvasData]);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const { nodes, edges } = useFlowStore.getState();
+        useCanvasStore.getState().updateCanvasData(nodes, edges);
+      }, 800);
+    });
+
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   // 监听 ? 键打开帮助面板
   useEffect(() => {
