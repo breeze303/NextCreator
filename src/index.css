@@ -27,18 +27,10 @@ body {
 }
 
 /* React Flow 自定义样式 */
+
 .react-flow__node {
-  /* 防止节点内容在 WebView 中模糊 */
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* 防止节点内滚动容器导致模糊 */
-.react-flow__node [class*="overflow-"] {
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
 }
 
 .react-flow__edge-path {

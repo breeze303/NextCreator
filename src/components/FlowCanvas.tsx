@@ -9,6 +9,7 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
+  type Viewport,
   SelectionMode,
   ControlButton,
 } from "@xyflow/react";
@@ -42,6 +43,17 @@ interface ContextMenuState {
   y: number;
   type: "node" | "edge" | "pane";
   targetId?: string;
+}
+
+// WKWebView 模糊修复：将 zoom 吸附到 0.25 步长（0.25/0.50/0.75/1.00/1.25...）
+// 非整数 scale 会导致节点内 overflow:scroll 等 CA 子层采样偏差，引发整节点模糊
+const ZOOM_STEP = 0.1;
+function snapViewport(x: number, y: number, zoom: number) {
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    zoom: Math.round(zoom / ZOOM_STEP) * ZOOM_STEP,
+  };
 }
 
 export function FlowCanvas() {
@@ -275,6 +287,12 @@ export function FlowCanvas() {
 
   const onInit = useCallback((instance: ReactFlowInstance<CustomNode>) => {
     reactFlowInstance.current = instance;
+    // 启动时立即吸附 zoom 到 0.25 步长，防止上次保存的非整数 zoom 导致模糊
+    const vp = instance.getViewport();
+    const snapped = snapViewport(vp.x, vp.y, vp.zoom);
+    if (snapped.x !== vp.x || snapped.y !== vp.y || snapped.zoom !== vp.zoom) {
+      instance.setViewport(snapped, { duration: 0 });
+    }
   }, []);
 
   const onNodeClick = useCallback(
@@ -384,6 +402,14 @@ export function FlowCanvas() {
     },
     [setSelectedNodes, setSelectedEdges]
   );
+
+  // 平移/缩放结束后吸附到干净坐标，防止非整数 scale/translate 导致 WKWebView 模糊
+  const onMoveEnd = useCallback((_event: MouseEvent | TouchEvent, viewport: Viewport) => {
+    const snapped = snapViewport(viewport.x, viewport.y, viewport.zoom);
+    if (snapped.x !== viewport.x || snapped.y !== viewport.y || snapped.zoom !== viewport.zoom) {
+      reactFlowInstance.current?.setViewport(snapped, { duration: 0 });
+    }
+  }, []);
 
   // 获取右键菜单项
   const getContextMenuItems = useCallback((): ContextMenuItem[] => {
@@ -598,6 +624,7 @@ export function FlowCanvas() {
         onPaneContextMenu={onPaneContextMenu}
         onEdgeClick={onEdgeClick}
         onSelectionChange={onSelectionChange}
+        onMoveEnd={onMoveEnd}
         nodeTypes={nodeTypes as NodeTypes}
         selectionMode={SelectionMode.Partial}
         selectionOnDrag={!trimMode}

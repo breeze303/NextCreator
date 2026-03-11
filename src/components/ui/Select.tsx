@@ -155,7 +155,7 @@ export function Select({
           flex items-center justify-between w-full h-8 px-3 text-sm rounded-lg
           bg-base-200/50 border border-base-300/60
           hover:bg-base-200 hover:border-base-300
-          transition-all duration-200
+          transition-colors duration-200
           ${isOpen ? "ring-2 ring-primary/20 border-primary/50 bg-base-100" : ""}
         `}
         onClick={(e) => {
@@ -170,10 +170,9 @@ export function Select({
         <span className={selectedOption ? "text-base-content" : "text-base-content/40"}>
           {selectedOption?.label || placeholder}
         </span>
+        {/* 去掉 transition-transform（rotate 动画会触发 WKWebView 合成层，导致短暂模糊） */}
         <ChevronDown
-          className={`w-4 h-4 text-base-content/40 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`w-4 h-4 text-base-content/40 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
