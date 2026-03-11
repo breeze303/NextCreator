@@ -96,6 +96,14 @@ export interface PPTPageItem {
   manualThumbnail?: string;    // 手动上传图片的缩略图（用于画布预览）
   manualThumbnailPath?: string; // 手动上传缩略图的文件路径
   error?: string;
+  // 局部重绘状态（存在节点数据中，面板关闭后仍可持续）
+  inpaintStatus?: "generating";
+  inpaintSnapshot?: {
+    manualImage?: string;
+    manualImagePath?: string;
+    manualThumbnail?: string;
+    manualThumbnailPath?: string;
+  };
 }
 
 // 大纲配置 - 页数范围

@@ -17,6 +17,8 @@ interface PagesTabProps {
   progress: PPTContentNodeData["progress"];
   hasTemplateImage: boolean;
   connectedImages?: ConnectedImageInfo[];
+  onInpaintPage: (pageId: string, maskBase64: string, prompt: string, originalBase64: string) => void;
+  onRevertInpaint: (pageId: string) => void;
   onStartAll: () => void;
   onPauseAll: () => void;
   onResumeAll: () => void;
@@ -35,6 +37,8 @@ export function PagesTab({
   progress,
   hasTemplateImage,
   connectedImages = [],
+  onInpaintPage,
+  onRevertInpaint,
   onStartAll,
   onPauseAll,
   onResumeAll,
@@ -210,6 +214,8 @@ export function PagesTab({
             onUploadImage={onUploadImage}
             onShowScript={onShowScript}
             connectedImages={connectedImages}
+            onInpaintPage={onInpaintPage}
+            onRevertInpaint={onRevertInpaint}
             disabled={false}
           />
         ))}

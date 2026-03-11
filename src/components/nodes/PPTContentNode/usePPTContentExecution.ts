@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { toast } from "@/stores/toastStore";
 import { useFlowStore } from "@/stores/flowStore";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { generateText, validateJsonOutput } from "@/services/llmService";
@@ -794,6 +795,144 @@ export function usePPTContentExecution({
     [nodeId, updatePageState]
   );
 
+  /**
+   * 局部重绘：在节点层执行，面板关闭后任务仍持续
+   * 读取 data.imageModel / data.imageConfig.aspectRatio，与页面生成保持一致
+   */
+  const inpaintPage = useCallback(
+    async (pageId: string, maskBase64: string, prompt: string, originalBase64: string) => {
+      const { activeCanvasId } = useCanvasStore.getState();
+      canvasIdRef.current = activeCanvasId;
+
+      // 读取当前页面数据，保存重绘前快照
+      const { nodes } = useFlowStore.getState();
+      const currentNode = nodes.find((n) => n.id === nodeId);
+      const currentData = currentNode?.data as PPTContentNodeData | undefined;
+      const page = currentData?.pages.find((p) => p.id === pageId);
+
+      const snapshot = {
+        manualImage: page?.manualImage,
+        manualImagePath: page?.manualImagePath,
+        manualThumbnail: page?.manualThumbnail,
+        manualThumbnailPath: page?.manualThumbnailPath,
+      };
+
+      // 标记为重绘中（状态存入节点数据，不依赖组件状态）
+      updatePageState(pageId, {
+        inpaintStatus: "generating",
+        inpaintSnapshot: snapshot,
+      });
+
+      try {
+        const imageModelToUse = data.imageModel || DEFAULT_IMAGE_MODEL;
+        const enhancedPrompt = `I'm providing two images: the original image and the same image with red highlighted areas marking the regions I want you to edit. Please edit ONLY the red-marked areas according to this instruction: ${prompt}`;
+
+        const response = await editImage(
+          {
+            prompt: enhancedPrompt,
+            model: imageModelToUse,
+            inputImages: [originalBase64, maskBase64],
+            aspectRatio: data.imageConfig.aspectRatio,
+            imageSize: data.imageConfig.imageSize,
+          },
+          "imageGeneratorPro"
+        );
+
+        if (response.error) throw new Error(response.error);
+        if (!response.imageData) throw new Error("未获取到生成结果");
+
+        // 保存到文件系统（与 uploadPageImage 相同逻辑）
+        let manualImagePath: string | undefined;
+        let manualThumbnailPath: string | undefined;
+        const saveCanvasId = canvasIdRef.current || activeCanvasId;
+
+        if (saveCanvasId) {
+          try {
+            const imageInfo = await saveImage(
+              response.imageData,
+              saveCanvasId,
+              `${nodeId}-page-${page?.pageNumber || "inpaint"}-inpaint`
+            );
+            manualImagePath = imageInfo.path;
+          } catch (e) {
+            console.warn("[inpaintPage] 图片保存失败:", e);
+          }
+        }
+
+        let manualThumbnail: string | undefined;
+        try {
+          manualThumbnail = await generateThumbnail(response.imageData, {
+            maxWidth: 800,
+            quality: 0.85,
+            format: "jpeg",
+          });
+          if (saveCanvasId && manualThumbnail) {
+            try {
+              const thumbInfo = await saveImage(
+                manualThumbnail,
+                saveCanvasId,
+                `${nodeId}-page-${page?.pageNumber || "inpaint"}-inpaint-thumb`
+              );
+              manualThumbnailPath = thumbInfo.path;
+            } catch (e) {
+              console.warn("[inpaintPage] 缩略图保存失败:", e);
+            }
+          }
+        } catch (e) {
+          console.warn("[inpaintPage] 缩略图生成失败:", e);
+        }
+
+        // 应用结果，清除 inpaintStatus，保留 inpaintSnapshot 供撤销
+        updatePageState(pageId, {
+          manualImage: response.imageData,
+          manualImagePath,
+          manualThumbnail,
+          manualThumbnailPath,
+          status: "completed",
+          inpaintStatus: undefined,
+        });
+
+        toast.success(`第 ${page?.pageNumber ?? ""} 页重绘完成`);
+      } catch (error) {
+        console.error("[inpaintPage] 失败:", error);
+        // 失败时清除重绘状态和快照（图片未变化，无需撤销）
+        updatePageState(pageId, {
+          inpaintStatus: undefined,
+          inpaintSnapshot: undefined,
+        });
+        toast.error(
+          `第 ${page?.pageNumber ?? ""} 页重绘失败：${error instanceof Error ? error.message : "未知错误"}`
+        );
+      }
+    },
+    [nodeId, updatePageState, data.imageModel, data.imageConfig.aspectRatio, data.imageConfig.imageSize]
+  );
+
+  /**
+   * 撤销局部重绘：恢复快照中保存的 manualImage 状态
+   */
+  const revertPageInpaint = useCallback(
+    (pageId: string) => {
+      const { nodes } = useFlowStore.getState();
+      const currentNode = nodes.find((n) => n.id === nodeId);
+      const currentData = currentNode?.data as PPTContentNodeData | undefined;
+      const page = currentData?.pages.find((p) => p.id === pageId);
+      const snapshot = page?.inpaintSnapshot;
+      if (!snapshot) return;
+
+      updatePageState(pageId, {
+        manualImage: snapshot.manualImage,
+        manualImagePath: snapshot.manualImagePath,
+        manualThumbnail: snapshot.manualThumbnail,
+        manualThumbnailPath: snapshot.manualThumbnailPath,
+        inpaintSnapshot: undefined,
+        inpaintStatus: undefined,
+      });
+      toast.success(`第 ${page?.pageNumber ?? ""} 页已撤销重绘`);
+    },
+    [nodeId, updatePageState]
+  );
+
   return {
     // 大纲生成
     generateOutline,
@@ -809,5 +948,7 @@ export function usePPTContentExecution({
     runPage,
     stopPage,
     uploadPageImage,
+    inpaintPage,
+    revertPageInpaint,
   };
 }

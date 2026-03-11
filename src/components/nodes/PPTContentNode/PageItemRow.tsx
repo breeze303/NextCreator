@@ -13,9 +13,12 @@ import {
   ChevronDown,
   ChevronRight,
   ImageIcon,
+  Wand2,
 } from "lucide-react";
 import type { PPTPageItem, PPTPageStatus, ConnectedImageInfo } from "./types";
 import { ImagePreviewModal } from "@/components/ui/ImagePreviewModal";
+import { InpaintModal } from "./InpaintModal";
+import { LoadingIndicator } from "@/components/ui/LoadingIndicator";
 import { getImageUrl } from "@/services/fileStorageService";
 
 interface PageItemRowProps {
@@ -28,6 +31,8 @@ interface PageItemRowProps {
   onShowScript?: (item: PPTPageItem) => void;
   connectedImages?: ConnectedImageInfo[];
   disabled?: boolean;
+  onInpaintPage: (pageId: string, maskBase64: string, prompt: string, originalBase64: string) => void;
+  onRevertInpaint: (pageId: string) => void;
 }
 
 // 静态状态图标映射（running 状态在组件内部动态渲染）
@@ -38,7 +43,6 @@ const StaticStatusIcon: Record<Exclude<PPTPageStatus, "running">, React.ReactNod
   skipped: <SkipForward className="w-4 h-4 text-warning" />,
 };
 
-// 状态文本映射
 const StatusText: Record<PPTPageStatus, string> = {
   pending: "待生成",
   running: "生成中",
@@ -47,7 +51,6 @@ const StatusText: Record<PPTPageStatus, string> = {
   skipped: "已跳过",
 };
 
-// 状态背景色映射
 const StatusBg: Record<PPTPageStatus, string> = {
   pending: "bg-base-200",
   running: "bg-info/10 border-info/30",
@@ -56,13 +59,9 @@ const StatusBg: Record<PPTPageStatus, string> = {
   skipped: "bg-warning/5 border-warning/20",
 };
 
-// 简单的 Markdown 渲染函数（支持 **粗体** 和 *斜体*）
 function renderSimpleMarkdown(text: string): React.ReactNode {
   if (!text) return null;
-
-  // 匹配 **粗体** 和 *斜体*
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
-
   return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
@@ -85,72 +84,72 @@ function renderSimpleMarkdown(text: string): React.ReactNode {
 export function PageItemRow({
   item,
   onRetry,
-  onSkip: _onSkip, // 保留接口但暂不使用
+  onSkip: _onSkip,
   onRun,
   onStop,
   onUploadImage,
   onShowScript,
   connectedImages = [],
   disabled = false,
+  onInpaintPage,
+  onRevertInpaint,
 }: PageItemRowProps) {
   const [showPreview, setShowPreview] = useState(false);
+  const [showInpaint, setShowInpaint] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 保留 _onSkip 以避免 lint 警告
   void _onSkip;
 
-  // 获取显示的图片（优先使用手动上传，然后是生成的图片）
   const displayImage = item.manualImage || item.result?.image;
-  // 获取图片路径（优先使用手动上传的路径，然后是生成的路径）
   const displayImagePath = item.manualImagePath || item.result?.imagePath;
-  // 获取缩略图（优先使用手动上传的缩略图，然后是生成的缩略图）
   const displayThumbnail = item.manualThumbnail || item.result?.thumbnail;
   const displayThumbnailPath = item.manualThumbnailPath || item.result?.thumbnailPath;
+  const hasImage = !!(displayImage || displayImagePath || displayThumbnail || displayThumbnailPath);
 
-  // 计算缩略图显示 URL（优先使用缩略图，减少内存占用）
   const getThumbnailUrl = useCallback(() => {
-    // 优先使用缩略图路径
-    if (displayThumbnailPath) {
-      return getImageUrl(displayThumbnailPath);
-    }
-    // 其次使用缩略图 base64（JPEG 格式）
-    if (displayThumbnail) {
-      return `data:image/jpeg;base64,${displayThumbnail}`;
-    }
-    // 回退到原图路径
-    if (displayImagePath) {
-      return getImageUrl(displayImagePath);
-    }
-    // 最后回退到原图 base64
-    if (displayImage) {
-      return `data:image/png;base64,${displayImage}`;
-    }
+    if (displayThumbnailPath) return getImageUrl(displayThumbnailPath);
+    if (displayThumbnail) return `data:image/jpeg;base64,${displayThumbnail}`;
+    if (displayImagePath) return getImageUrl(displayImagePath);
+    if (displayImage) return `data:image/png;base64,${displayImage}`;
     return undefined;
   }, [displayThumbnail, displayThumbnailPath, displayImage, displayImagePath]);
 
-  // 处理图片上传
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ── 局部重绘：提交给节点层执行（不依赖组件存活）────────────
+  const handleInpaintSubmit = useCallback(
+    (maskBase64: string, prompt: string, originalBase64: string) => {
+      onInpaintPage(item.id, maskBase64, prompt, originalBase64);
+    },
+    [item.id, onInpaintPage]
+  );
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      // 移除 data:image/xxx;base64, 前缀
-      const base64 = result.split(",")[1];
-      onUploadImage(item.id, base64);
-    };
-    reader.readAsDataURL(file);
+  // ── 撤销重绘 ─────────────────────────────────────────────
+  const handleRevertInpaint = useCallback(() => {
+    onRevertInpaint(item.id);
+  }, [item.id, onRevertInpaint]);
 
-    // 清空 input 以允许重复上传同一文件
-    e.target.value = "";
-  }, [item.id, onUploadImage]);
+  // ── 文件上传 ─────────────────────────────────────────────
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        onUploadImage(item.id, base64);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+    },
+    [item.id, onUploadImage]
+  );
 
-  // 切换展开状态
-  const toggleExpand = useCallback(() => {
-    setIsExpanded(prev => !prev);
-  }, []);
+  const toggleExpand = useCallback(() => setIsExpanded((p) => !p), []);
+
+  // 从节点数据读取重绘状态（面板关闭后仍持久）
+  const showInpaintingOverlay = item.inpaintStatus === "generating";
+  const showRevertBadge = !!item.inpaintSnapshot && item.inpaintStatus !== "generating";
+  const isManual = !!(item.manualImage || item.manualImagePath);
 
   return (
     <>
@@ -161,12 +160,12 @@ export function PageItemRow({
           ${isExpanded ? "shadow-md" : "hover:shadow-sm"}
         `}
       >
-        {/* 主行内容 - 可点击展开 */}
+        {/* 主行内容 */}
         <div
           className="flex items-center gap-3 p-3 cursor-pointer select-none"
           onClick={toggleExpand}
         >
-          {/* 展开/收起图标 */}
+          {/* 展开/收起 */}
           <div className="flex-shrink-0 text-base-content/40">
             {isExpanded ? (
               <ChevronDown className="w-4 h-4" />
@@ -192,11 +191,15 @@ export function PageItemRow({
               <span className="text-sm font-semibold text-primary">
                 第 {item.pageNumber} 页
               </span>
-              <span className="text-sm text-base-content/80 truncate">
-                {item.heading}
-              </span>
+              <span className="text-sm text-base-content/80 truncate">{item.heading}</span>
+              {/* 重绘进行中标记 */}
+              {showInpaintingOverlay && (
+                <span className="inline-flex items-center gap-1 text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                  <LoadingIndicator size="xs" variant="dots" />
+                  重绘中
+                </span>
+              )}
             </div>
-            {/* 要点预览 - 收起状态 */}
             {!isExpanded && item.points.length > 0 && (
               <div className="text-xs text-base-content/50 mt-0.5 line-clamp-1">
                 {renderSimpleMarkdown(item.points[0])}
@@ -209,22 +212,41 @@ export function PageItemRow({
             )}
           </div>
 
-          {/* 图片预览 - 更大尺寸 */}
-          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {(displayImage || displayImagePath || displayThumbnail || displayThumbnailPath) ? (
+          {/* 缩略图区域 */}
+          <div className="flex-shrink-0 flex flex-col items-end gap-1" onClick={(e) => e.stopPropagation()}>
+            {hasImage ? (
               <div
                 className="relative w-28 h-16 rounded-lg overflow-hidden cursor-pointer group shadow-sm border border-base-300"
-                onClick={() => setShowPreview(true)}
+                onClick={() => !showInpaintingOverlay && setShowPreview(true)}
               >
                 <img
                   src={getThumbnailUrl()}
                   alt={`Page ${item.pageNumber}`}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Maximize2 className="w-5 h-5 text-white" />
-                </div>
-                {(item.manualImage || item.manualImagePath) && (
+
+                {/* 重绘进行中遮罩 */}
+                {showInpaintingOverlay ? (
+                  <div className="absolute inset-0 bg-primary/25 flex flex-col items-center justify-center gap-1">
+                    <div className="text-primary">
+                      <LoadingIndicator size="sm" variant="bars" />
+                    </div>
+                    <span className="text-[10px] text-primary font-medium">重绘中</span>
+                  </div>
+                ) : (
+                  /* 普通 hover 放大提示 */
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Maximize2 className="w-5 h-5 text-white" />
+                  </div>
+                )}
+
+                {/* 左上角标记：已重绘 or 手动 */}
+                {showRevertBadge && (
+                  <div className="absolute top-1 left-1 bg-primary/90 text-primary-content text-[9px] px-1.5 py-0.5 rounded font-medium">
+                    已重绘
+                  </div>
+                )}
+                {isManual && !showRevertBadge && (
                   <div className="absolute top-1 right-1 bg-warning text-warning-content text-[9px] px-1.5 py-0.5 rounded font-medium">
                     手动
                   </div>
@@ -234,6 +256,18 @@ export function PageItemRow({
               <div className="w-28 h-16 rounded-lg bg-base-300/50 flex items-center justify-center border border-base-300/50">
                 <span className="text-base-content/30 text-xs">暂无图片</span>
               </div>
+            )}
+
+            {/* 撤销重绘按钮：在缩略图下方，仅当有快照时显示 */}
+            {showRevertBadge && (
+              <button
+                className="flex items-center gap-1 text-[11px] text-base-content/50 hover:text-error transition-colors"
+                onClick={handleRevertInpaint}
+                title="撤销此次重绘，恢复原图"
+              >
+                <RotateCcw className="w-3 h-3" />
+                撤销重绘
+              </button>
             )}
           </div>
 
@@ -283,6 +317,22 @@ export function PageItemRow({
               </button>
             )}
 
+            {/* AI 局部重绘 */}
+            {(displayImage || displayImagePath) && (
+              <button
+                className={`btn btn-ghost btn-sm btn-square ${showInpaintingOverlay ? "text-primary" : "text-primary/70 hover:text-primary"}`}
+                onClick={() => setShowInpaint(true)}
+                disabled={item.status === "running" || showInpaintingOverlay}
+                title={showInpaintingOverlay ? "重绘进行中..." : "AI 局部重绘"}
+              >
+                {showInpaintingOverlay ? (
+                  <LoadingIndicator size="xs" variant="dots" />
+                ) : (
+                  <Wand2 className="w-4 h-4" />
+                )}
+              </button>
+            )}
+
             <button
               className="btn btn-ghost btn-sm btn-square"
               onClick={() => fileInputRef.current?.click()}
@@ -292,7 +342,6 @@ export function PageItemRow({
               <Upload className="w-4 h-4" />
             </button>
 
-            {/* 隐藏的文件输入 */}
             <input
               ref={fileInputRef}
               type="file"
@@ -306,7 +355,6 @@ export function PageItemRow({
         {/* 展开内容 */}
         {isExpanded && (
           <div className="px-4 pb-4 pt-1 border-t border-base-300/50 bg-base-100/50">
-            {/* PPT 要点 */}
             <div className="mb-3">
               <div className="text-xs font-medium text-base-content/60 mb-2 flex items-center gap-1">
                 <span className="w-1 h-1 rounded-full bg-primary" />
@@ -321,15 +369,12 @@ export function PageItemRow({
                     <span className="text-xs text-primary/60 font-medium mt-0.5 min-w-[16px]">
                       {index + 1}.
                     </span>
-                    <span className="flex-1 leading-relaxed">
-                      {renderSimpleMarkdown(point)}
-                    </span>
+                    <span className="flex-1 leading-relaxed">{renderSimpleMarkdown(point)}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 推荐配图描述 */}
             {item.imageDesc && (
               <div className="mb-3">
                 <div className="text-xs font-medium text-base-content/60 mb-1.5 flex items-center gap-1">
@@ -342,7 +387,6 @@ export function PageItemRow({
               </div>
             )}
 
-            {/* 口头讲稿预览 */}
             {item.script && (
               <div>
                 <div className="text-xs font-medium text-base-content/60 mb-1.5 flex items-center gap-1">
@@ -363,10 +407,9 @@ export function PageItemRow({
               </div>
             )}
 
-            {/* 额外补充说明 */}
-            {(item.supplement?.text || (item.supplement?.imageRefs && item.supplement.imageRefs.length > 0)) && (
+            {(item.supplement?.text ||
+              (item.supplement?.imageRefs && item.supplement.imageRefs.length > 0)) && (
               <div className="mt-3 p-2.5 bg-primary/5 rounded-lg border border-primary/20">
-                {/* 补充说明文字 */}
                 {item.supplement?.text && (
                   <>
                     <div className="text-xs font-medium text-primary mb-1.5 flex items-center gap-1">
@@ -378,17 +421,19 @@ export function PageItemRow({
                     </p>
                   </>
                 )}
-
-                {/* 参考图片 */}
                 {item.supplement?.imageRefs && item.supplement.imageRefs.length > 0 && (
-                  <div className={item.supplement?.text ? "mt-2 pt-2 border-t border-primary/10" : ""}>
+                  <div
+                    className={
+                      item.supplement?.text ? "mt-2 pt-2 border-t border-primary/10" : ""
+                    }
+                  >
                     <div className="text-xs font-medium text-primary mb-1.5 flex items-center gap-1">
                       <ImageIcon className="w-3 h-3" />
                       参考图片
                     </div>
                     <div className="flex flex-wrap gap-2 pl-2">
                       {item.supplement.imageRefs.map((imageId) => {
-                        const img = connectedImages.find(i => i.id === imageId);
+                        const img = connectedImages.find((i) => i.id === imageId);
                         if (!img) return null;
                         return (
                           <div
@@ -401,8 +446,8 @@ export function PageItemRow({
                                 img.imagePath
                                   ? getImageUrl(img.imagePath)
                                   : img.imageData
-                                    ? `data:image/png;base64,${img.imageData}`
-                                    : undefined
+                                  ? `data:image/png;base64,${img.imageData}`
+                                  : undefined
                               }
                               alt={img.fileName || "参考图片"}
                               className="w-full h-full object-cover"
@@ -416,7 +461,6 @@ export function PageItemRow({
               </div>
             )}
 
-            {/* 错误信息 */}
             {item.error && (
               <div className="mt-3 p-2.5 bg-error/10 rounded-lg border border-error/20">
                 <p className="text-xs text-error flex items-start gap-1.5">
@@ -435,6 +479,17 @@ export function PageItemRow({
           imageData={displayImage}
           imagePath={displayImagePath}
           onClose={() => setShowPreview(false)}
+        />
+      )}
+
+      {/* AI 局部重绘弹窗 */}
+      {showInpaint && (displayImage || displayImagePath) && (
+        <InpaintModal
+          imageData={displayImage}
+          imagePath={displayImagePath}
+          pageTitle={`第 ${item.pageNumber} 页 · ${item.heading}`}
+          onSubmit={handleInpaintSubmit}
+          onClose={() => setShowInpaint(false)}
         />
       )}
     </>

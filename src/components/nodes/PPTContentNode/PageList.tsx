@@ -17,6 +17,8 @@ interface PageListProps {
   onStopPage: (id: string) => void;
   onUploadImage: (id: string, imageData: string) => void;
   onShowScript?: (item: PPTPageItem) => void;
+  onInpaintPage: (pageId: string, maskBase64: string, prompt: string, originalBase64: string) => void;
+  onRevertInpaint: (pageId: string) => void;
 }
 
 export function PageList({
@@ -33,6 +35,8 @@ export function PageList({
   onStopPage,
   onUploadImage,
   onShowScript,
+  onInpaintPage,
+  onRevertInpaint,
 }: PageListProps) {
   // 计算统计信息
   const stats = useMemo(() => {
@@ -181,6 +185,8 @@ export function PageList({
             onStop={onStopPage}
             onUploadImage={onUploadImage}
             onShowScript={onShowScript}
+            onInpaintPage={onInpaintPage}
+            onRevertInpaint={onRevertInpaint}
             disabled={isRunning}
           />
         ))}
