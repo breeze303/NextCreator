@@ -68,14 +68,16 @@ function OpenAIImageGeneratorBase({
   const canvasIdRef = useRef<string | null>(null);
 
   const defaultModel: ModelType = "gpt-image-1";
-  const model: ModelType = data.model || defaultModel;
+  const model: ModelType = (data.model || defaultModel).trim();
 
   const quality = data.quality || "standard";
   const style = data.style || "auto";
   const negativePrompt = data.negativePrompt ?? "";
 
   const handleModelChange = (value: string) => {
-    updateNodeData<OpenAIImageGeneratorNodeData>(id, { model: value });
+    const normalized = value.trim();
+    if (!normalized) return;
+    updateNodeData<OpenAIImageGeneratorNodeData>(id, { model: normalized });
   };
 
   const updateNodeDataWithCanvas = useCallback(

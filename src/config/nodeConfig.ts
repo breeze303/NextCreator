@@ -198,7 +198,7 @@ export const nodeCategories: NodeCategory[] = [
         icon: "Sparkles",
         defaultData: {
           label: "Qwen 绘图",
-          model: "Qwen/Qwen-Image",
+          model: "Qwen/Qwen-Image-Edit-2509",
           aspectRatio: "1:1",
           imageSize: "1328x1328",
           numInferenceSteps: 20,

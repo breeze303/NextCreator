@@ -63,7 +63,9 @@ export function ModelSelector({
 
   // 处理选择
   const handleSelect = (newValue: string) => {
-    onChange(newValue);
+    const normalized = newValue.trim();
+    if (!normalized) return;
+    onChange(normalized);
     setIsOpen(false);
   };
 

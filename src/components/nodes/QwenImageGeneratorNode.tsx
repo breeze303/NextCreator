@@ -31,9 +31,9 @@ interface QwenImageGeneratorNodeData {
 type QwenImageGeneratorNode = Node<QwenImageGeneratorNodeData>;
 
 const presetModels = [
-  { value: "Qwen/Qwen-Image", label: "Qwen-Image" },
   { value: "Qwen/Qwen-Image-Edit-2509", label: "Qwen-Image-Edit-2509" },
   { value: "Qwen/Qwen-Image-Edit", label: "Qwen-Image-Edit" },
+  { value: "Qwen/Qwen-Image", label: "Qwen-Image" },
 ];
 
 const aspectRatioOptions: Array<{ value: QwenImageGeneratorNodeData["aspectRatio"]; label: string }> = [
@@ -68,8 +68,8 @@ function QwenImageGeneratorBase({
 
   const canvasIdRef = useRef<string | null>(null);
 
-  const defaultModel: ModelType = "Qwen/Qwen-Image";
-  const model: ModelType = data.model || defaultModel;
+  const defaultModel: ModelType = "Qwen/Qwen-Image-Edit-2509";
+  const model: ModelType = (data.model || defaultModel).trim();
 
   const aspectRatio = data.aspectRatio || "1:1";
   const imageSize = data.imageSize || sizeByAspectRatio[aspectRatio];
@@ -78,7 +78,9 @@ function QwenImageGeneratorBase({
   const cfg = clampNumber(data.cfg ?? 4, 0.1, 20);
 
   const handleModelChange = (value: string) => {
-    updateNodeData<QwenImageGeneratorNodeData>(id, { model: value });
+    const normalized = value.trim();
+    if (!normalized) return;
+    updateNodeData<QwenImageGeneratorNodeData>(id, { model: normalized });
   };
 
   const updateNodeDataWithCanvas = useCallback(
@@ -209,9 +211,15 @@ function QwenImageGeneratorBase({
           });
         }
       } else if (response.error) {
+        const modelNotFoundHints =
+          response.error.includes("Model does not exist") ||
+          response.error.includes("model does not exist") ||
+          response.error.includes("模型") && response.error.includes("不存在")
+            ? "模型不存在：请在硅基流动控制台/模型列表接口确认该模型 ID 是否可用（GET /v1/models?sub_type=text-to-image），并确保 baseUrl 填 https://api.siliconflow.cn"
+            : undefined;
         updateNodeDataWithCanvas(id, {
           status: "error",
-          error: response.error,
+          error: modelNotFoundHints ? `${response.error}\n\n${modelNotFoundHints}` : response.error,
           errorDetails: response.errorDetails,
         });
       } else {
