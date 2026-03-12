@@ -69,6 +69,14 @@ pub struct DalleRequest {
     pub negative_prompt: Option<String>,
 }
 
+fn normalize_base64_image_for_api(image: &str) -> String {
+    if image.starts_with("data:image/") {
+        image.to_string()
+    } else {
+        format!("data:image/png;base64,{}", image)
+    }
+}
+
 // DALL-E API 响应结构
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
@@ -143,7 +151,7 @@ pub async fn dalle_generate_image(params: DalleRequestParams) -> DalleResult {
     if let Some(images) = &params.input_images {
         if let Some(first_image) = images.first() {
             println!("[Rust] Adding reference image for image-to-image generation");
-            request_body.image = Some(first_image.clone());
+            request_body.image = Some(normalize_base64_image_for_api(first_image));
         }
     }
 
