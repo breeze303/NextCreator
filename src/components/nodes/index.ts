@@ -5,6 +5,8 @@ export { FluxGeneratorNode } from "./FluxGeneratorNode";
 export { GptImageGeneratorNode } from "./GptImageGeneratorNode";
 export { DoubaoGeneratorNode } from "./DoubaoGeneratorNode";
 export { ZImageGeneratorNode } from "./ZImageGeneratorNode";
+export { OpenAIImageGeneratorNode } from "./OpenAIImageGeneratorNode";
+export { QwenImageGeneratorNode } from "./QwenImageGeneratorNode";
 export { ImageInputNode } from "./ImageInputNode";
 export { VideoGeneratorNode } from "./VideoGeneratorNode";
 export { VeoGeneratorNode } from "./VeoGeneratorNode";
@@ -21,6 +23,8 @@ import { FluxGeneratorNode } from "./FluxGeneratorNode";
 import { GptImageGeneratorNode } from "./GptImageGeneratorNode";
 import { DoubaoGeneratorNode } from "./DoubaoGeneratorNode";
 import { ZImageGeneratorNode } from "./ZImageGeneratorNode";
+import { OpenAIImageGeneratorNode } from "./OpenAIImageGeneratorNode";
+import { QwenImageGeneratorNode } from "./QwenImageGeneratorNode";
 import { ImageInputNode } from "./ImageInputNode";
 import { VideoGeneratorNode } from "./VideoGeneratorNode";
 import { VeoGeneratorNode } from "./VeoGeneratorNode";
@@ -41,6 +45,8 @@ export const nodeTypes = {
   gptImageGeneratorNode: GptImageGeneratorNode,
   doubaoGeneratorNode: DoubaoGeneratorNode,
   zImageGeneratorNode: ZImageGeneratorNode,
+  openaiImageGeneratorNode: OpenAIImageGeneratorNode,
+  qwenImageGeneratorNode: QwenImageGeneratorNode,
   imageInputNode: ImageInputNode,
   videoGeneratorNode: VideoGeneratorNode,
   veoGeneratorNode: VeoGeneratorNode,
@@ -50,4 +56,3 @@ export const nodeTypes = {
   llmContentNode: LLMContentNode,
   fileUploadNode: FileUploadNode,
 };
-

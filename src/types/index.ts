@@ -226,6 +226,8 @@ export interface NodeProviderMapping {
   gptImageGenerator?: string;   // GPT Image 图片节点使用的供应商 ID
   doubaoGenerator?: string;     // 豆包图片节点使用的供应商 ID
   zImageGenerator?: string;     // Z-Image 图片节点使用的供应商 ID
+  openaiImageGenerator?: string; // 通用 OpenAI Images API 图片节点使用的供应商 ID
+  qwenImageGenerator?: string;
   videoGenerator?: string;      // 视频节点使用的供应商 ID
   veoGenerator?: string;        // Veo 视频节点使用的供应商 ID
   klingGenerator?: string;      // Kling 视频节点使用的供应商 ID
@@ -243,6 +245,8 @@ export const NODE_ALLOWED_PROTOCOLS: Record<keyof NodeProviderMapping, ProviderP
   gptImageGenerator: ["openai"],
   doubaoGenerator: ["openai"],
   zImageGenerator: ["openai"],  // Z-Image 使用 OpenAI DALL-E 格式
+  openaiImageGenerator: ["openai"],
+  qwenImageGenerator: ["openai"],
   videoGenerator: ["openai"],
   veoGenerator: ["openai", "google"],  // Veo 支持 OpenAI 兼容和 Google 协议
   klingGenerator: ["openai"],  // Kling 使用 OpenAI 兼容协议

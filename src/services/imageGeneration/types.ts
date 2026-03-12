@@ -29,6 +29,7 @@ export interface ImageGenerationRequest {
   steps?: number; // 生成步数
   guidanceScale?: number; // 引导强度
   style?: string; // 风格预设
+  background?: string;
 }
 
 /**
@@ -114,4 +115,4 @@ export interface ImageGenerationProvider {
 /**
  * 图片节点类型
  */
-export type ImageNodeType = "imageGeneratorPro" | "imageGeneratorFast" | "imageGeneratorNB2" | "dalleGenerator" | "fluxGenerator" | "gptImageGenerator" | "doubaoGenerator" | "zImageGenerator";
+export type ImageNodeType = "imageGeneratorPro" | "imageGeneratorFast" | "imageGeneratorNB2" | "dalleGenerator" | "fluxGenerator" | "gptImageGenerator" | "doubaoGenerator" | "zImageGenerator" | "openaiImageGenerator" | "qwenImageGenerator";

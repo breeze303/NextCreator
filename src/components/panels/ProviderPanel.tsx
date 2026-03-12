@@ -34,6 +34,8 @@ const nodeTypeConfig: { key: keyof NodeProviderMapping; label: string; descripti
   { key: "gptImageGenerator", label: "GPT Image 绘图", description: "OpenAI GPT Image 图片生成节点" },
   { key: "doubaoGenerator", label: "豆包绘图", description: "字节跳动豆包图片生成节点" },
   { key: "zImageGenerator", label: "Z-Image 绘图", description: "Gitee AI Z-Image 图片生成节点" },
+  { key: "openaiImageGenerator", label: "OpenAI 通用绘图", description: "通用 OpenAI Images API 兼容图片生成节点" },
+  { key: "qwenImageGenerator", label: "Qwen 绘图", description: "硅基流动 Qwen 图片生成节点" },
   { key: "videoGenerator", label: "视频生成", description: "Sora 视频生成节点" },
   { key: "veoGenerator", label: "Veo 视频生成", description: "Gemini Veo 视频生成节点" },
   { key: "klingGenerator", label: "Kling 视频生成", description: "Kling 视频生成节点" },
