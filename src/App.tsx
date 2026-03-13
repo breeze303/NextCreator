@@ -4,7 +4,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { Toolbar } from "@/components/Toolbar";
 import { FlowCanvas } from "@/components/FlowCanvas";
 import { Sidebar } from "@/components/Sidebar";
-import { SettingsPanel, KeyboardShortcutsPanel } from "@/components/panels";
+import { SettingsPanel, KeyboardShortcutsPanel, BatchTaskPanel } from "@/components/panels";
 import { ProviderPanel } from "@/components/panels/ProviderPanel";
 import { StorageManagementModal } from "@/components/ui/StorageManagementModal";
 import { ToastContainer } from "@/components/ui/Toast";
@@ -192,6 +192,8 @@ function App() {
 
         {/* 快捷键帮助面板 */}
         <KeyboardShortcutsPanel isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+
+        <BatchTaskPanel />
 
         {/* 存储管理弹窗 */}
         <StorageManagementModal />

@@ -49,6 +49,7 @@ export const EXECUTABLE_NODE_TYPES = [
   "llmContentNode",
   "videoGeneratorNode",
   "pptContentNode",
+  "batchImageGeneratorNode",
 ] as const;
 
 // 输入节点类型（无需执行，只提供数据）

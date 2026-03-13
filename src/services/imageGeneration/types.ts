@@ -22,6 +22,7 @@ export interface ImageGenerationRequest {
   prompt: string;
   model: string;
   inputImages?: string[]; // base64 图片数组
+  editEndpoint?: "auto" | "images" | "chat";
   aspectRatio?: string; // 宽高比
   imageSize?: string; // 分辨率
   negativePrompt?: string; // 负面提示词（部分供应商支持）
@@ -115,4 +116,4 @@ export interface ImageGenerationProvider {
 /**
  * 图片节点类型
  */
-export type ImageNodeType = "imageGeneratorPro" | "imageGeneratorFast" | "imageGeneratorNB2" | "dalleGenerator" | "fluxGenerator" | "gptImageGenerator" | "doubaoGenerator" | "zImageGenerator" | "openaiImageGenerator" | "qwenImageGenerator";
+export type ImageNodeType = "imageGeneratorPro" | "imageGeneratorFast" | "imageGeneratorNB2" | "dalleGenerator" | "fluxGenerator" | "gptImageGenerator" | "doubaoGenerator" | "zImageGenerator" | "openaiImageGenerator" | "qwenImageGenerator" | "batchImageGenerator";

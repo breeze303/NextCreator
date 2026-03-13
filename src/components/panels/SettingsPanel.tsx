@@ -41,6 +41,9 @@ export function SettingsPanel() {
   const [localTheme, setLocalTheme] = useState<AppSettings["theme"]>(
     settings.theme
   );
+  const [localBatchConcurrency, setLocalBatchConcurrency] = useState(
+    settings.batch?.concurrency ?? 3
+  );
   const [updateButtonState, setUpdateButtonState] =
     useState<UpdateButtonState>("idle");
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -59,13 +62,19 @@ export function SettingsPanel() {
   if (!isSettingsOpen) return null;
 
   const handleSave = () => {
-    updateSettings({ theme: localTheme });
+    updateSettings({
+      theme: localTheme,
+      batch: {
+        concurrency: Math.min(10, Math.max(1, Math.round(localBatchConcurrency || 3))),
+      },
+    });
     closeSettings();
   };
 
   const handleReset = () => {
     resetSettings();
     setLocalTheme(useSettingsStore.getState().settings.theme);
+    setLocalBatchConcurrency(useSettingsStore.getState().settings.batch?.concurrency ?? 3);
     setShowResetConfirm(false);
   };
 
@@ -214,6 +223,32 @@ export function SettingsPanel() {
                 setLocalTheme(value as AppSettings["theme"])
               }
             />
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">批量任务并发</span>
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              className="input input-bordered w-full"
+              value={localBatchConcurrency}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (Number.isNaN(value)) {
+                  setLocalBatchConcurrency(3);
+                  return;
+                }
+                setLocalBatchConcurrency(Math.min(10, Math.max(1, Math.round(value))));
+              }}
+            />
+            <label className="label py-0.5">
+              <span className="label-text-alt text-base-content/50">
+                默认 3，同时执行的批量图片任务数量上限
+              </span>
+            </label>
           </div>
 
           {/* 分隔线 */}

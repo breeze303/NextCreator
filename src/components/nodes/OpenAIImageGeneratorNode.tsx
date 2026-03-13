@@ -20,6 +20,7 @@ interface OpenAIImageGeneratorNodeData {
   quality: "standard" | "hd";
   style: "auto" | "vivid" | "natural";
   negativePrompt: string;
+  editEndpoint: "auto" | "images" | "chat";
   status: "idle" | "loading" | "success" | "error";
   outputImage?: string;
   outputImagePath?: string;
@@ -52,6 +53,12 @@ const styleOptions: Array<{ value: OpenAIImageGeneratorNodeData["style"]; label:
   { value: "natural", label: "自然" },
 ];
 
+const endpointOptions: Array<{ value: OpenAIImageGeneratorNodeData["editEndpoint"]; label: string }> = [
+  { value: "auto", label: "自动" },
+  { value: "images", label: "Images" },
+  { value: "chat", label: "Chat" },
+];
+
 function OpenAIImageGeneratorBase({
   id,
   data,
@@ -73,6 +80,7 @@ function OpenAIImageGeneratorBase({
   const quality = data.quality || "standard";
   const style = data.style || "auto";
   const negativePrompt = data.negativePrompt ?? "";
+  const editEndpoint = data.editEndpoint || "auto";
 
   const handleModelChange = (value: string) => {
     const normalized = value.trim();
@@ -134,6 +142,7 @@ function OpenAIImageGeneratorBase({
           prompt,
           model,
           inputImages: images.length > 0 ? images : undefined,
+          editEndpoint,
           aspectRatio: data.aspectRatio,
           imageSize: quality === "hd" ? "4K" : undefined,
           negativePrompt: negativePrompt.trim() ? negativePrompt : undefined,
@@ -357,6 +366,28 @@ function OpenAIImageGeneratorBase({
           </div>
 
           <div className="sr-only">风格</div>
+          <div>
+            <label className="text-xs text-base-content/60 mb-0.5 block">编辑通道</label>
+            <div className="grid grid-cols-3 gap-1">
+              {endpointOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={
+                    `btn btn-xs ` + (editEndpoint === opt.value ? "btn-secondary" : "btn-ghost bg-base-200")
+                  }
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateNodeData<OpenAIImageGeneratorNodeData>(id, { editEndpoint: opt.value });
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="text-xs text-base-content/60 mb-0.5 block">风格</label>
             <div className="grid grid-cols-3 gap-1">

@@ -19,8 +19,12 @@ const defaultSettings: AppSettings = {
   nodeProviders: {
     qwenImageGenerator: "builtin-siliconflow",
     openaiImageGenerator: "builtin-siliconflow",
+    batchImageGenerator: "builtin-siliconflow",
   },
   theme: "light",
+  batch: {
+    concurrency: 3,
+  },
 };
 
 // 数据迁移：为旧版供应商数据添加 protocol 字段并处理 baseUrl
@@ -49,6 +53,11 @@ function migrateProviders(providers: Provider[]): Provider[] {
       protocol,
     };
   });
+}
+
+function clampBatchConcurrency(value: number | undefined): number {
+  if (!value || Number.isNaN(value)) return 3;
+  return Math.min(10, Math.max(1, Math.round(value)));
 }
 
 interface SettingsStore extends SettingsState {
@@ -88,7 +97,17 @@ export const useSettingsStore = create<SettingsStore>()(
 
       updateSettings: (newSettings) =>
         set((state) => ({
-          settings: { ...state.settings, ...newSettings },
+          settings: {
+            ...state.settings,
+            ...newSettings,
+            batch: newSettings.batch
+              ? {
+                  ...state.settings.batch,
+                  ...newSettings.batch,
+                  concurrency: clampBatchConcurrency(newSettings.batch.concurrency),
+                }
+              : state.settings.batch,
+          },
         })),
 
       resetSettings: () =>
@@ -193,6 +212,15 @@ export const useSettingsStore = create<SettingsStore>()(
             if (needsMigration) {
               console.log("[settingsStore] 执行供应商数据迁移");
               state.updateSettings({ providers: migratedProviders });
+            }
+
+            if (!state.settings.batch) {
+              state.updateSettings({ batch: { concurrency: 3 } });
+            } else {
+              const nextConcurrency = clampBatchConcurrency(state.settings.batch.concurrency);
+              if (nextConcurrency !== state.settings.batch.concurrency) {
+                state.updateSettings({ batch: { concurrency: nextConcurrency } });
+              }
             }
           }
         };

@@ -23,6 +23,14 @@ interface TauriDalleResult {
   error?: string;
 }
 
+interface TauriOpenAIImageEditResult {
+  success: boolean;
+  imageData?: string;
+  imageUrl?: string;
+  content?: string;
+  error?: string;
+}
+
 /**
  * OpenAI DALL-E 图片生成提供商
  */
@@ -105,6 +113,7 @@ export class DalleImageProvider implements ImageGenerationProvider {
       quality: request.imageSize === "4K" ? "hd" : "standard",
       style: request.style,
       negativePrompt: request.negativePrompt,
+      editEndpoint: request.editEndpoint,
     };
   }
 
@@ -128,6 +137,14 @@ export class DalleImageProvider implements ImageGenerationProvider {
     }
 
     try {
+      if (request.editEndpoint === "chat") {
+        return await this.generateViaChat(request, config);
+      }
+
+      if (request.editEndpoint === "auto" && request.inputImages && request.inputImages.length > 0) {
+        return await this.generateViaChat(request, config);
+      }
+
       return await this.generateViaTauri(request, config);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
@@ -139,6 +156,59 @@ export class DalleImageProvider implements ImageGenerationProvider {
         errorDetails: this.buildErrorDetails(error, request, config),
       };
     }
+  }
+
+  private async generateViaChat(
+    request: ImageGenerationRequest,
+    config: ProviderConfig
+  ): Promise<ImageGenerationResponse> {
+    const files = (request.inputImages || []).map((data, idx) => ({
+      data,
+      mimeType: "image/png",
+      fileName: `input-${idx + 1}.png`,
+    }));
+
+    const llmParams = {
+      baseUrl: config.baseUrl.replace(/\/+$/, ""),
+      apiKey: config.apiKey,
+      model: request.model,
+      prompt: request.prompt,
+      files: files.length > 0 ? files : undefined,
+      temperature: 0.7,
+    };
+
+    const result = await invoke<TauriOpenAIImageEditResult>("openai_chat_image_edit", {
+      params: llmParams,
+    });
+
+    if (!result.success) {
+      return {
+        error: result.error || "请求失败",
+        errorDetails: this.buildErrorDetails(
+          new Error(result.error || "请求失败"),
+          request,
+          config
+        ),
+      };
+    }
+
+    if (!result.imageData) {
+      return {
+        error: "Chat 接口返回成功，但未解析到图片数据",
+        errorDetails: this.buildErrorDetails(
+          new Error("未解析到图片数据"),
+          request,
+          config
+        ),
+      };
+    }
+
+    return {
+      imageData: result.imageData,
+      metadata: {
+        model: request.model,
+      },
+    };
   }
 
   /**

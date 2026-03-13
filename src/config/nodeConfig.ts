@@ -3,6 +3,7 @@ import {
   Sparkles,
   Zap,
   ImagePlus,
+  Images,
   Video,
   FileText,
   Presentation,
@@ -182,6 +183,7 @@ export const nodeCategories: NodeCategory[] = [
         defaultData: {
           label: "OpenAI 通用绘图",
           model: "gpt-image-1",
+          editEndpoint: "auto",
           aspectRatio: "1:1",
           quality: "standard",
           style: "auto",
@@ -207,6 +209,21 @@ export const nodeCategories: NodeCategory[] = [
           status: "idle",
         },
         inputs: ["prompt", "image"],
+        outputs: ["image"],
+      },
+      {
+        type: "batchImageGeneratorNode",
+        label: "批量出图",
+        description: "批量导入图片并并发生成",
+        icon: "Images",
+        defaultData: {
+          label: "批量出图",
+          model: "Qwen/Qwen-Image-Edit-2509",
+          prompt: "",
+          items: [],
+          status: "idle",
+        },
+        inputs: ["prompt"],
         outputs: ["image"],
       },
     ],
@@ -359,6 +376,7 @@ export const nodeIconMap: Record<string, React.ComponentType<{ className?: strin
   Flame,
   Box,
   Film,
+  Images,
 };
 
 // 图标颜色映射
@@ -377,4 +395,5 @@ export const nodeIconColors: Record<string, string> = {
   Flame: "bg-cyan-500/10 text-cyan-500",
   Box: "bg-indigo-500/10 text-indigo-500",
   Film: "bg-fuchsia-500/10 text-fuchsia-500",
+  Images: "bg-purple-500/10 text-purple-500",
 };

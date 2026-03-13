@@ -10,6 +10,7 @@ import type {
   LLMContentNodeData,
   VideoGeneratorNodeData,
   PPTContentNodeData,
+  BatchImageNodeData,
 } from "@/types";
 import type { NodeExecutionResult } from "@/types/workflow";
 import { shouldSkipNode } from "@/types/workflow";
@@ -587,6 +588,19 @@ async function executePPTContentNode(
   };
 }
 
+async function executeBatchImageGeneratorNode(
+  node: CustomNode,
+  canvasId: string
+): Promise<NodeExecutionResult> {
+  const data = node.data as BatchImageNodeData;
+  const errorMsg = "批量出图节点暂不支持自动工作流执行，请手动点击开始";
+  updateNodeDataWithCanvas<BatchImageNodeData>(node.id, canvasId, {
+    status: "error",
+    error: data.items?.length ? errorMsg : "请先导入图片",
+  });
+  return { success: false, error: errorMsg };
+}
+
 /**
  * 节点执行器类
  */
@@ -620,6 +634,9 @@ export class NodeExecutor {
 
       case "pptContentNode":
         return executePPTContentNode(node, canvasId, signal);
+
+      case "batchImageGeneratorNode":
+        return executeBatchImageGeneratorNode(node, canvasId);
 
       default:
         // 未知节点类型，跳过

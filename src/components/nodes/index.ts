@@ -7,6 +7,7 @@ export { DoubaoGeneratorNode } from "./DoubaoGeneratorNode";
 export { ZImageGeneratorNode } from "./ZImageGeneratorNode";
 export { OpenAIImageGeneratorNode } from "./OpenAIImageGeneratorNode";
 export { QwenImageGeneratorNode } from "./QwenImageGeneratorNode";
+export { BatchImageGeneratorNode } from "./BatchImageGeneratorNode";
 export { ImageInputNode } from "./ImageInputNode";
 export { VideoGeneratorNode } from "./VideoGeneratorNode";
 export { VeoGeneratorNode } from "./VeoGeneratorNode";
@@ -25,6 +26,7 @@ import { DoubaoGeneratorNode } from "./DoubaoGeneratorNode";
 import { ZImageGeneratorNode } from "./ZImageGeneratorNode";
 import { OpenAIImageGeneratorNode } from "./OpenAIImageGeneratorNode";
 import { QwenImageGeneratorNode } from "./QwenImageGeneratorNode";
+import { BatchImageGeneratorNode } from "./BatchImageGeneratorNode";
 import { ImageInputNode } from "./ImageInputNode";
 import { VideoGeneratorNode } from "./VideoGeneratorNode";
 import { VeoGeneratorNode } from "./VeoGeneratorNode";
@@ -47,6 +49,7 @@ export const nodeTypes = {
   zImageGeneratorNode: ZImageGeneratorNode,
   openaiImageGeneratorNode: OpenAIImageGeneratorNode,
   qwenImageGeneratorNode: QwenImageGeneratorNode,
+  batchImageGeneratorNode: BatchImageGeneratorNode,
   imageInputNode: ImageInputNode,
   videoGeneratorNode: VideoGeneratorNode,
   veoGeneratorNode: VeoGeneratorNode,

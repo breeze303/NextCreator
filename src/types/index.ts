@@ -121,6 +121,68 @@ export interface ImageInputNodeData {
   hasMask?: boolean;
 }
 
+export type BatchImageItemStatus =
+  | "pending"
+  | "queued"
+  | "running"
+  | "success"
+  | "error"
+  | "cancelled";
+
+export interface BatchImageItemResult {
+  imageData?: string;
+  imagePath?: string;
+  error?: string;
+  errorDetails?: ErrorDetails;
+  prompt?: string;
+  completedAt?: number;
+}
+
+export interface BatchImageItem {
+  id: string;
+  fileName?: string;
+  sourceImageData?: string;
+  sourceImagePath?: string;
+  status: BatchImageItemStatus;
+  startedAt?: number;
+  completedAt?: number;
+  taskId?: string;
+  result?: BatchImageItemResult;
+}
+
+export interface BatchImageNodeData {
+  [key: string]: unknown;
+  label: string;
+  model: ModelType;
+  prompt: string;
+  aspectRatio?: ImageGenerationParams["aspectRatio"];
+  imageSize?: ImageGenerationParams["imageSize"];
+  negativePrompt?: string;
+  items: BatchImageItem[];
+  status: "idle" | "loading" | "success" | "error" | "cancelled";
+  groupId?: string;
+  completedCount?: number;
+  failedCount?: number;
+  runningCount?: number;
+  totalCount?: number;
+  latestOutputImage?: string;
+  latestOutputImagePath?: string;
+  error?: string;
+  errorDetails?: ErrorDetails;
+}
+
+export interface BatchImageTaskGroup {
+  id: string;
+  nodeId: string;
+  canvasId: string;
+  createdAt: number;
+  status: "idle" | "running" | "completed" | "cancelled";
+  model: ModelType;
+  prompt: string;
+  concurrency: number;
+  items: BatchImageItem[];
+}
+
 export interface TextOutputNodeData {
   [key: string]: unknown;
   label: string;
@@ -176,6 +238,7 @@ export type { PPTPageData, PPTAssemblerNodeData } from "@/components/nodes/PPTAs
 export type CustomNodeData =
   | PromptNodeData
   | ImageGeneratorNodeData
+  | BatchImageNodeData
   | ImageInputNodeData
   | TextOutputNodeData
   | VideoGeneratorNodeData
@@ -229,6 +292,7 @@ export interface NodeProviderMapping {
   zImageGenerator?: string;     // Z-Image 图片节点使用的供应商 ID
   openaiImageGenerator?: string; // 通用 OpenAI Images API 图片节点使用的供应商 ID
   qwenImageGenerator?: string;
+  batchImageGenerator?: string;
   videoGenerator?: string;      // 视频节点使用的供应商 ID
   veoGenerator?: string;        // Veo 视频节点使用的供应商 ID
   klingGenerator?: string;      // Kling 视频节点使用的供应商 ID
@@ -248,6 +312,7 @@ export const NODE_ALLOWED_PROTOCOLS: Record<keyof NodeProviderMapping, ProviderP
   zImageGenerator: ["openai"],  // Z-Image 使用 OpenAI DALL-E 格式
   openaiImageGenerator: ["openai"],
   qwenImageGenerator: ["openai"],
+  batchImageGenerator: ["openai"],
   videoGenerator: ["openai"],
   veoGenerator: ["openai", "google"],  // Veo 支持 OpenAI 兼容和 Google 协议
   klingGenerator: ["openai"],  // Kling 使用 OpenAI 兼容协议
@@ -260,6 +325,9 @@ export interface AppSettings {
   providers: Provider[];              // 供应商列表
   nodeProviders: NodeProviderMapping; // 节点类型 -> 供应商映射
   theme: "light" | "dark" | "system";
+  batch: {
+    concurrency: number;
+  };
 }
 
 // Store 状态

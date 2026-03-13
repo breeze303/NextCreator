@@ -34,6 +34,7 @@ pub fn run() {
             gemini_generate_text,
             // LLM 代理命令
             openai_chat_completion,
+            openai_chat_image_edit,
             openai_responses,
             claude_chat_completion,
             // 视频服务代理命令

@@ -1,6 +1,35 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+
+async fn download_image_as_base64(client: &Client, url: &str) -> Result<String, String> {
+    let response = client
+        .get(url)
+        .timeout(Duration::from_secs(120))
+        .send()
+        .await
+        .map_err(|e| {
+            if e.is_timeout() {
+                "图片下载超时".to_string()
+            } else if e.is_connect() {
+                "无法连接到图片服务器".to_string()
+            } else {
+                format!("图片下载失败: {}", e)
+            }
+        })?;
+
+    if !response.status().is_success() {
+        return Err(format!("图片下载失败，HTTP 状态码: {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("读取图片数据失败: {}", e))?;
+
+    Ok(BASE64.encode(&bytes))
+}
 
 // ==================== 通用数据结构 ====================
 
@@ -105,9 +134,81 @@ struct OpenAIChoice {
     message: Option<OpenAIMessageResponse>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+enum OpenAIMessageContent {
+    Text(String),
+    Any(serde_json::Value),
+}
+
+fn openai_message_content_to_value(content: &OpenAIMessageContent) -> serde_json::Value {
+    match content {
+        OpenAIMessageContent::Text(s) => serde_json::Value::String(s.clone()),
+        OpenAIMessageContent::Any(v) => v.clone(),
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct OpenAIMessageResponse {
-    content: Option<String>,
+    content: Option<OpenAIMessageContent>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenAIImageEditResult {
+    pub success: bool,
+    pub image_data: Option<String>,
+    pub image_url: Option<String>,
+    pub content: Option<String>,
+    pub error: Option<String>,
+}
+
+fn extract_image_from_chat_content(content: &serde_json::Value) -> (Option<String>, Option<String>) {
+    if let Some(s) = content.as_str() {
+        if let Some(idx) = s.find("data:image") {
+            let part = &s[idx..];
+            if let Some(start) = part.find("base64,") {
+                let b64 = &part[start + 7..];
+                let cleaned = b64.replace(['\n', '\r'], "");
+                return (Some(cleaned), None);
+            }
+        }
+        return (None, None);
+    }
+
+    if let Some(arr) = content.as_array() {
+        for item in arr {
+            let item_type = item
+                .get("type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
+            if item_type == "image_url" {
+                if let Some(url) = item
+                    .get("image_url")
+                    .and_then(|x| x.get("url"))
+                    .and_then(|v| v.as_str())
+                {
+                    if let Some(pos) = url.find("base64,") {
+                        let cleaned = url[pos + 7..].replace(['\n', '\r'], "");
+                        return (Some(cleaned), Some(url.to_string()));
+                    }
+                    return (None, Some(url.to_string()));
+                }
+            }
+
+            if item_type == "output_image" {
+                if let Some(b64) = item.get("b64_json").and_then(|v| v.as_str()) {
+                    return (Some(b64.to_string()), None);
+                }
+                if let Some(url) = item.get("url").and_then(|v| v.as_str()) {
+                    return (None, Some(url.to_string()));
+                }
+            }
+        }
+    }
+
+    (None, None)
 }
 
 #[derive(Debug, Deserialize)]
@@ -597,14 +698,25 @@ pub async fn openai_chat_completion(params: LLMRequestParams) -> LLMResult {
         };
     }
 
-    // 提取内容
     let content = openai_response
         .choices
         .and_then(|choices| choices.into_iter().next())
         .and_then(|choice| choice.message)
         .and_then(|msg| msg.content);
 
-    if content.is_none() {
+    let content_text = match content {
+        None => None,
+        Some(OpenAIMessageContent::Text(s)) => Some(s),
+        Some(OpenAIMessageContent::Any(v)) => {
+            if let Some(s) = v.as_str() {
+                Some(s.to_string())
+            } else {
+                Some(v.to_string())
+            }
+        }
+    };
+
+    if content_text.is_none() {
         return LLMResult {
             success: false,
             content: None,
@@ -612,12 +724,215 @@ pub async fn openai_chat_completion(params: LLMRequestParams) -> LLMResult {
         };
     }
 
-    println!("[Rust] OpenAI result: content length = {}", content.as_ref().map(|c| c.len()).unwrap_or(0));
+    println!(
+        "[Rust] OpenAI result: content length = {}",
+        content_text.as_ref().map(|c| c.len()).unwrap_or(0)
+    );
 
     LLMResult {
         success: true,
-        content,
+        content: content_text,
         error: None,
+    }
+}
+
+#[tauri::command]
+pub async fn openai_chat_image_edit(params: LLMRequestParams) -> OpenAIImageEditResult {
+    let mut messages: Vec<OpenAIMessage> = Vec::new();
+
+    if let Some(system_prompt) = &params.system_prompt {
+        if !system_prompt.is_empty() {
+            messages.push(OpenAIMessage {
+                role: "system".to_string(),
+                content: OpenAIContent::Text(system_prompt.clone()),
+            });
+        }
+    }
+
+    let user_content = if let Some(files) = &params.files {
+        if !files.is_empty() {
+            let mut parts: Vec<OpenAIContentPart> = vec![
+                OpenAIContentPart::Text { text: params.prompt.clone() }
+            ];
+            for file in files {
+                if file.mime_type.starts_with("image/") {
+                    parts.push(OpenAIContentPart::ImageUrl {
+                        image_url: OpenAIImageUrl {
+                            url: format!("data:{};base64,{}", file.mime_type, file.data),
+                        },
+                    });
+                }
+            }
+            OpenAIContent::Parts(parts)
+        } else {
+            OpenAIContent::Text(params.prompt.clone())
+        }
+    } else {
+        OpenAIContent::Text(params.prompt.clone())
+    };
+
+    messages.push(OpenAIMessage {
+        role: "user".to_string(),
+        content: user_content,
+    });
+
+    let request_body = OpenAIRequest {
+        model: params.model.clone(),
+        messages,
+        temperature: params.temperature,
+        max_tokens: params.max_tokens,
+        response_format: None,
+    };
+
+    let url = format!("{}/v1/chat/completions", params.base_url.trim_end_matches('/'));
+
+    let client = match Client::builder().timeout(Duration::from_secs(300)).build() {
+        Ok(c) => c,
+        Err(e) => {
+            return OpenAIImageEditResult {
+                success: false,
+                image_data: None,
+                image_url: None,
+                content: None,
+                error: Some(format!("创建 HTTP 客户端失败: {}", e)),
+            }
+        }
+    };
+
+    let response = match client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", params.api_key))
+        .json(&request_body)
+        .send()
+        .await {
+        Ok(r) => r,
+        Err(e) => {
+            let error_msg = if e.is_timeout() {
+                "请求超时，请稍后重试".to_string()
+            } else if e.is_connect() {
+                "无法连接到服务器，请检查网络".to_string()
+            } else {
+                format!("请求失败: {}", e)
+            };
+            return OpenAIImageEditResult {
+                success: false,
+                image_data: None,
+                image_url: None,
+                content: None,
+                error: Some(error_msg),
+            };
+        }
+    };
+
+    let status = response.status();
+    if !status.is_success() {
+        let error_text = response.text().await.unwrap_or_default();
+        return OpenAIImageEditResult {
+            success: false,
+            image_data: None,
+            image_url: None,
+            content: None,
+            error: Some(format!("API 返回错误 ({}): {}", status, error_text)),
+        };
+    }
+
+    let response_text = match response.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            return OpenAIImageEditResult {
+                success: false,
+                image_data: None,
+                image_url: None,
+                content: None,
+                error: Some(format!("获取响应失败: {}", e)),
+            };
+        }
+    };
+
+    let openai_response: OpenAIResponse = match serde_json::from_str(&response_text) {
+        Ok(r) => r,
+        Err(e) => {
+            return OpenAIImageEditResult {
+                success: false,
+                image_data: None,
+                image_url: None,
+                content: None,
+                error: Some(format!("解析响应失败: {}", e)),
+            };
+        }
+    };
+
+    if let Some(err) = openai_response.error {
+        return OpenAIImageEditResult {
+            success: false,
+            image_data: None,
+            image_url: None,
+            content: None,
+            error: Some(err.message),
+        };
+    }
+
+    let content = openai_response
+        .choices
+        .as_ref()
+        .and_then(|choices| choices.first())
+        .and_then(|choice| choice.message.as_ref())
+        .and_then(|msg| msg.content.as_ref())
+        .cloned();
+
+    let Some(content_value) = content else {
+        return OpenAIImageEditResult {
+            success: false,
+            image_data: None,
+            image_url: None,
+            content: None,
+            error: Some("API 未返回有效内容".to_string()),
+        };
+    };
+
+    let content_json = openai_message_content_to_value(&content_value);
+    let (b64, maybe_url) = extract_image_from_chat_content(&content_json);
+
+    if let Some(image_data) = b64 {
+        return OpenAIImageEditResult {
+            success: true,
+            image_data: Some(image_data),
+            image_url: maybe_url,
+            content: Some(content_json.to_string()),
+            error: None,
+        };
+    }
+
+    if let Some(image_url) = maybe_url {
+        match download_image_as_base64(&client, &image_url).await {
+            Ok(image_data) => {
+                return OpenAIImageEditResult {
+                    success: true,
+                    image_data: Some(image_data),
+                    image_url: Some(image_url),
+                    content: Some(content_json.to_string()),
+                    error: None,
+                }
+            }
+            Err(e) => {
+                return OpenAIImageEditResult {
+                    success: false,
+                    image_data: None,
+                    image_url: Some(image_url),
+                    content: Some(content_json.to_string()),
+                    error: Some(format!("图片生成成功但下载失败: {}", e)),
+                }
+            }
+        }
+    }
+
+    OpenAIImageEditResult {
+        success: false,
+        image_data: None,
+        image_url: None,
+        content: Some(content_json.to_string()),
+        error: Some("未解析到图片数据".to_string()),
     }
 }
 

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Settings, Trash2, Download, Upload, Undo2, Redo2, HelpCircle, Server, HardDrive, AlertTriangle } from "lucide-react";
+import { Settings, Trash2, Download, Upload, Undo2, Redo2, HelpCircle, Server, HardDrive, ListTodo, AlertTriangle } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFlowStore } from "@/stores/flowStore";
 import { useStorageManagementStore } from "@/stores/storageManagementStore";
+import { useBatchTaskStore } from "@/stores/batchTaskStore";
 import { useModal, getModalAnimationClasses } from "@/hooks/useModal";
 import { toast } from "@/stores/toastStore";
 import { WorkflowControls } from "@/components/workflow/WorkflowControls";
@@ -19,6 +20,7 @@ export function Toolbar({ onOpenHelp }: { onOpenHelp?: () => void }) {
   const canUndo = useFlowStore((state) => state.canUndo);
   const canRedo = useFlowStore((state) => state.canRedo);
   const { openModal: openStorageModal } = useStorageManagementStore();
+  const openBatchTasks = useBatchTaskStore((s) => s.open);
 
   // 清空画布确认对话框状态
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -195,6 +197,11 @@ export function Toolbar({ onOpenHelp }: { onOpenHelp?: () => void }) {
         <div className="tooltip tooltip-bottom" data-tip="存储管理">
           <button className="btn btn-ghost btn-sm btn-circle" onClick={openStorageModal}>
             <HardDrive className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="tooltip tooltip-bottom" data-tip="后台任务">
+          <button className="btn btn-ghost btn-sm btn-circle" onClick={openBatchTasks}>
+            <ListTodo className="w-5 h-5" />
           </button>
         </div>
         <div className="tooltip tooltip-bottom" data-tip="供应商管理">
