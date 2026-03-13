@@ -120,13 +120,43 @@ function QwenImageGeneratorBase({
     const { activeCanvasId } = useCanvasStore.getState();
     canvasIdRef.current = activeCanvasId;
 
-    if (!prompt) {
-      updateNodeDataWithCanvas(id, {
-        status: "error",
-        error: "请连接提示词节点",
-        errorDetails: undefined,
-      });
-      return;
+    const isEditModel = model.includes("/Qwen-Image-Edit");
+    const hasInputImage = images.length > 0;
+
+    if (!isEditModel) {
+      if (hasInputImage) {
+        updateNodeDataWithCanvas(id, {
+          status: "error",
+          error: "当前模型不支持参考图输入（请改用 Qwen-Image-Edit 模型）",
+          errorDetails: undefined,
+        });
+        return;
+      }
+      if (!prompt) {
+        updateNodeDataWithCanvas(id, {
+          status: "error",
+          error: "请连接提示词节点",
+          errorDetails: undefined,
+        });
+        return;
+      }
+    } else {
+      if (!hasInputImage) {
+        updateNodeDataWithCanvas(id, {
+          status: "error",
+          error: "当前模型需要输入参考图（请连接图片输入节点）",
+          errorDetails: undefined,
+        });
+        return;
+      }
+      if (!prompt) {
+        updateNodeDataWithCanvas(id, {
+          status: "error",
+          error: "请连接提示词节点",
+          errorDetails: undefined,
+        });
+        return;
+      }
     }
 
     updateNodeDataWithCanvas(id, { status: "loading", error: undefined, errorDetails: undefined });
@@ -136,7 +166,7 @@ function QwenImageGeneratorBase({
         {
           prompt,
           model,
-          inputImages: images.length > 0 ? images : undefined,
+          inputImages: hasInputImage ? images : undefined,
           aspectRatio,
           imageSize,
           negativePrompt: negativePrompt.trim() ? negativePrompt : undefined,

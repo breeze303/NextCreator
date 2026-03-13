@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { useModal, getModalAnimationClasses } from "@/hooks/useModal";
 import { NODE_ALLOWED_PROTOCOLS } from "@/types";
 import type { Provider, NodeProviderMapping, ProviderProtocol } from "@/types";
+import { getProviderBaseUrlDisplay, isBuiltinProvider } from "@/services/providerResolution";
 
 // 协议类型配置
 const protocolConfig: { key: ProviderProtocol; label: string }[] = [
@@ -178,7 +179,7 @@ export function ProviderPanel() {
                         </span>
                       </div>
                       <div className="text-sm text-base-content/50 truncate">
-                        {provider.baseUrl}
+                        {getProviderBaseUrlDisplay(provider)}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-2">
@@ -329,15 +330,16 @@ function ProviderEditModal({ provider, onSave, onClose }: ProviderEditModalProps
   const { backdropClasses, contentClasses } = getModalAnimationClasses(isVisible, isClosing);
 
   const isEditing = !!provider;
-  const canSave = name.trim() && apiKey.trim() && baseUrl.trim();
+  const builtin = provider ? isBuiltinProvider(provider) : false;
+  const canSave = builtin ? !!name.trim() : name.trim() && apiKey.trim() && baseUrl.trim();
 
   const handleSave = () => {
     if (!canSave) return;
     onSave({
       name: name.trim(),
-      apiKey: apiKey.trim(),
-      baseUrl: baseUrl.trim(),
-      protocol,
+      apiKey: builtin ? "" : apiKey.trim(),
+      baseUrl: builtin ? "" : baseUrl.trim(),
+      protocol: builtin && provider ? provider.protocol : protocol,
     });
   };
 
@@ -386,12 +388,20 @@ function ProviderEditModal({ provider, onSave, onClose }: ProviderEditModalProps
                     : "text-base-content/60 hover:text-base-content"
                   }
                 `}
-                onClick={() => setProtocol(key)}
+                onClick={() => {
+                  if (builtin) return;
+                  setProtocol(key);
+                }}
               >
                 {label}
               </button>
             ))}
           </div>
+          {builtin && (
+            <div className="text-xs text-base-content/50 mt-2">
+              内置供应商不允许修改协议类型
+            </div>
+          )}
         </div>
 
         {/* 表单 */}
@@ -413,12 +423,18 @@ function ProviderEditModal({ provider, onSave, onClose }: ProviderEditModalProps
             <label className="label py-1">
               <span className="label-text font-medium">API Key</span>
             </label>
-            <Input
-              isPassword
-              placeholder="输入 API Key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
+            {builtin ? (
+              <div className="text-sm text-base-content/60 bg-base-200 rounded-lg px-3 py-2">
+                已内置（不在应用中显示）
+              </div>
+            ) : (
+              <Input
+                isPassword
+                placeholder="输入 API Key"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            )}
           </div>
 
           {/* Base URL */}
@@ -426,11 +442,17 @@ function ProviderEditModal({ provider, onSave, onClose }: ProviderEditModalProps
             <label className="label py-1">
               <span className="label-text font-medium">Base URL</span>
             </label>
-            <Input
-              placeholder="例如：https://api.example.com"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-            />
+            {builtin ? (
+              <div className="text-sm text-base-content/60 bg-base-200 rounded-lg px-3 py-2">
+                已内置（不在应用中显示）
+              </div>
+            ) : (
+              <Input
+                placeholder="例如：https://api.example.com"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+              />
+            )}
             <label className="label py-0.5">
               <span className="label-text-alt text-base-content/50">
                 无需填写版本路径（如 /v1beta）

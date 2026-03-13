@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { LLMModelType, Provider, ErrorDetails } from "@/types";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { resolveProviderRuntime } from "@/services/providerResolution";
 
 // LLM 节点类型
 type LLMNodeType = "llm" | "llmContent";
@@ -57,11 +58,13 @@ function getProviderConfig(nodeType: LLMNodeType) {
     throw new Error("供应商不存在，请重新配置");
   }
 
-  if (!provider.apiKey) {
+  const resolved = resolveProviderRuntime(provider);
+
+  if (!resolved.apiKey) {
     throw new Error("供应商 API Key 未配置");
   }
 
-  return provider;
+  return { ...provider, baseUrl: resolved.baseUrl, apiKey: resolved.apiKey, protocol: resolved.protocol };
 }
 
 // 根据协议获取对应的 Tauri 命令名称

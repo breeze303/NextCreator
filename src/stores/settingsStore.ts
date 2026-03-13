@@ -1,12 +1,25 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { AppSettings, SettingsState, Provider, NodeProviderMapping, ProviderProtocol } from "@/types";
+import { getBuiltinProvider } from "@/config/builtinProviders";
 import { tauriStorage } from "@/utils/tauriStorage";
 
 // 默认设置
 const defaultSettings: AppSettings = {
-  providers: [],
-  nodeProviders: {},
+  providers: [
+    {
+      id: "builtin-siliconflow",
+      name: getBuiltinProvider("siliconflow")?.displayName || "硅基流动",
+      apiKey: "",
+      baseUrl: "",
+      protocol: "openai",
+      builtinId: "siliconflow",
+    },
+  ],
+  nodeProviders: {
+    qwenImageGenerator: "builtin-siliconflow",
+    openaiImageGenerator: "builtin-siliconflow",
+  },
   theme: "light",
 };
 

@@ -8,6 +8,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { useFlowStore } from "@/stores/flowStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { resolveProviderRuntime } from "@/services/providerResolution";
 import type { VideoGeneratorNodeData } from "@/types";
 import { pollVideoTask, type VideoProgressInfo } from "./videoGeneration";
 import type { VeoGeneratorNodeData } from "@/components/nodes/VeoGeneratorNode";
@@ -180,6 +181,8 @@ class TaskManager {
       return;
     }
 
+    const resolvedProvider = resolveProviderRuntime(provider);
+
     const maxAttempts = 120; // 最多轮询 10 分钟
     const interval = 5000;   // 5秒间隔
     let attempts = 0;
@@ -194,8 +197,8 @@ class TaskManager {
         // 调用 Veo 状态查询
         const result = await invoke<{ success: boolean; taskId?: string; status?: string; progress?: number; error?: string }>("veo_get_status", {
           params: {
-            baseUrl: provider.baseUrl,
-            apiKey: provider.apiKey,
+            baseUrl: resolvedProvider.baseUrl,
+            apiKey: resolvedProvider.apiKey,
             taskId,
           },
         });
@@ -533,6 +536,8 @@ class TaskManager {
       return;
     }
 
+    const resolvedProvider = resolveProviderRuntime(provider);
+
     const maxAttempts = 120; // 最多轮询 10 分钟
     const interval = 5000;   // 5秒间隔
     let attempts = 0;
@@ -547,8 +552,8 @@ class TaskManager {
         // 调用 Kling 状态查询
         const result = await invoke<{ success: boolean; taskId?: string; status?: string; progress?: number; error?: string }>("kling_get_status", {
           params: {
-            baseUrl: provider.baseUrl,
-            apiKey: provider.apiKey,
+            baseUrl: resolvedProvider.baseUrl,
+            apiKey: resolvedProvider.apiKey,
             taskId,
             mode,
           },
@@ -581,8 +586,8 @@ class TaskManager {
           // 获取视频 URL
           const contentResult = await invoke<{ success: boolean; videoUrl?: string; error?: string }>("kling_get_content", {
             params: {
-              baseUrl: provider.baseUrl,
-              apiKey: provider.apiKey,
+              baseUrl: resolvedProvider.baseUrl,
+              apiKey: resolvedProvider.apiKey,
               taskId,
               mode,
             },

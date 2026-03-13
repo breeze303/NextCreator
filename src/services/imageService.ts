@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { ImageGenerationParams, ImageEditParams, GenerationResponse, ErrorDetails } from "@/types";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { resolveProviderRuntime } from "@/services/providerResolution";
 import { extractBase64ImageFromText, normalizeImageInput } from "@/services/imageDataUtils";
 
 // 图片节点类型
@@ -20,11 +21,13 @@ function getProviderConfig(nodeType: ImageNodeType) {
     throw new Error("供应商不存在，请重新配置");
   }
 
-  if (!provider.apiKey) {
+  const resolved = resolveProviderRuntime(provider);
+
+  if (!resolved.apiKey) {
     throw new Error("供应商 API Key 未配置");
   }
 
-  return provider;
+  return { ...provider, baseUrl: resolved.baseUrl, apiKey: resolved.apiKey, protocol: resolved.protocol };
 }
 
 // Tauri 后端代理请求参数

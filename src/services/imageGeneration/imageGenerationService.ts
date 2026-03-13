@@ -5,6 +5,7 @@
 import { imageGenerationRegistry } from "./registry";
 import { geminiImageProvider, dalleImageProvider, fluxImageProvider } from "./providers";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { resolveProviderRuntime } from "@/services/providerResolution";
 import type {
   ImageGenerationRequest,
   ImageGenerationResponse,
@@ -47,14 +48,16 @@ function getProviderConfig(nodeType: ImageNodeType): ProviderConfig {
     throw new Error("供应商不存在，请重新配置");
   }
 
-  if (!provider.apiKey) {
+  const resolved = resolveProviderRuntime(provider);
+
+  if (!resolved.apiKey) {
     throw new Error("供应商 API Key 未配置");
   }
 
   return {
-    apiKey: provider.apiKey,
-    baseUrl: provider.baseUrl,
-    protocol: provider.protocol,
+    apiKey: resolved.apiKey,
+    baseUrl: resolved.baseUrl,
+    protocol: resolved.protocol,
     name: provider.name,
   };
 }

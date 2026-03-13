@@ -214,6 +214,7 @@ export interface Provider {
   apiKey: string;       // API Key
   baseUrl: string;      // Base URL（不包含版本路径如 /v1beta）
   protocol: ProviderProtocol;  // API 协议类型
+  builtinId?: string;
 }
 
 // 节点类型到供应商的映射
