@@ -58,5 +58,56 @@ export const translationCategory: PromptCategory = {
       previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/journal.jpg",
       nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "9:16" },
     },
+{
+      id: "p-61437f",
+      title: "旅行手账插画生成",
+      titleEn: "旅行手账插画生成",
+      description: "旅行手账插画生成",
+      prompt: `请绘制一张色彩鲜艳、竖版（9:16）手绘风格的《{城市名}旅行手账插画》，画风仿佛由一位充满好奇心的孩子用蜡笔创作，整体使用柔和温暖的浅色背景（如浅黄色），搭配红色、蓝色、绿色等明亮色调，营造温馨、童趣、满满旅行气息的氛围。
+
+一、主画面：手账式旅行路线
+在插画中央绘制一条"蜿蜒曲折的旅行路线"，路线用箭头 + 虚线连接多个地点，由 {天数} 日行程自动生成推荐景点：
+- "第 1 站：{景点 1 推荐 + 简短趣味描述}"
+- "第 2 站：{景点 2 推荐 + 简短趣味描述}"
+- "第 3 站：{景点 3 推荐 + 简短趣味描述}"
+- …
+- "最终站：{当地招牌美食/纪念品 + 温馨结束语}"
+> 旅程站点数量随天数自动生成：
+> 若用户未输入天数，则按默认 1 日 / 精华线路生成。
+
+二、周围趣味元素（全部根据城市自动替换）
+在路线周围加入大量充满童趣的小元素，例如：
+- 可爱的旅行角色： "拿着当地特色小吃的小朋友"、 "背着旅行包的冒险小孩"等。
+- 当地标志性建筑的童趣 Q 版手绘： 如 "{城市地标1}"、"{城市地标2}"、"{城市地标3}"。
+- 有趣的提示牌： "小心迷路！"、"注意人流！"、"前方好吃的！"（可根据城市语境调整）。
+- 贴纸式小标语： "{城市名}旅行记忆已解锁！" "{城市名}美食大冒险！" "下一站去哪儿？"
+- 当地美食的可爱小图标： 如 "{城市美食1}"、"{城市美食2}"、"{城市美食3}"。
+- 感叹句（保持童真风）： "原来{城市名}这么好玩！" "我要再来一次！"
+
+三、整体风格要求
+- 手绘蜡笔风 / 儿童旅行日志风格
+- 色彩鲜艳、构图饱满但温暖
+- 强调旅行的欢乐与探索感
+- 所有文字采用可爱的手写字体
+- 让整个画面像一本童趣满满的旅行手账页面`,
+      tags: ["旅游", "插画"],
+      source: "@dotey",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/travel_journal_illustration.jpg",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "3:4" },
+    },
+    {
+      id: "p-ed107b",
+      title: "原生感菜单翻译",
+      titleEn: "原生感菜单翻译",
+      description: "原生感菜单翻译",
+      prompt: `为外国游客将墙上菜单的中文菜名翻译成英文。
+纹理保留：至关重要！保持墙壁/纸张原有的陈旧、油腻和有纹理的外观。新的英文文本应该看起来像是写/印在同一个表面上的，带有轻微的褪色或磨损以匹配。
+货币：保持'¥'符号和价格数字完全不变；不要转换货币。
+布局：将英文翻译自然地对齐在中文旁边或替换掉中文。`,
+      tags: ["旅游", "AI生成"],
+      source: "Wechat@01Founder",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/menu_translation.jpg",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
+    },
   ],
 };

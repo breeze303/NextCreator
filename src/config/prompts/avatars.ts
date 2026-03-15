@@ -142,5 +142,49 @@ Details: All text annotations and sound effects must be in handwritten Simplifie
       previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/chibi_sticker_pack.jpg",
       nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "16:9" },
     },
+{
+      id: "p-4048fb",
+      title: "Q版角色LINE风格表情包生成",
+      titleEn: "LINE",
+      description: "Q版角色LINE风格表情包生成",
+      prompt: `为我生成图中角色的绘制 Q 版的，LINE 风格的半身像表情包，注意头饰要正确
+彩色手绘风格，使用 4x6 布局，涵盖各种各样的常用聊天语句，或是一些有关的娱乐 meme
+其他需求：不要原图复制。所有标注为手写简体中文。
+生成的图片需为 4K 分辨率 16:9`,
+      tags: ["表情包", "Q版", "风格"],
+      source: "LINUX DO@heiyub",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/q_version_meme_pack.jpg",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "16:9" },
+    },
+    {
+      id: "p-1d7652",
+      title: "生成 3D 盲盒风格头像",
+      titleEn: "生成 3D 盲盒风格头像",
+      description: "生成 3D 盲盒风格头像",
+      prompt: `将上传照片中的人物变成一个可爱的3D泡泡玛特（Pop Mart）风格的盲盒角色。
+相似度：保持关键特征可识别：[发色、眼镜、发型]。
+风格：C4D渲染，环境光遮蔽渲染，可爱的Q版，柔和的影棚灯光，柔和的色彩。
+背景：一个简单、纯色的哑光背景（例如，柔和的蓝色）。
+细节：角色应具有光滑的塑料玩具质感，并带有轻微的光泽。面朝前方，表情友好。`,
+      tags: ["头像", "3D", "风格"],
+      source: "Wechat@01Founder",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/popmart_avatar.png",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "3:4" },
+    },
+    {
+      id: "p-b0414b",
+      title: "制作宠物表情包",
+      titleEn: "制作宠物表情包",
+      description: "制作宠物表情包",
+      prompt: `把我这张[猫/狗]的照片变成一个搞笑的手绘微信表情包。
+风格：极简的丑萌线条画（涂鸦风格）。白色背景。
+表情：夸大动物的表情，使其看起来极度震惊/鄙视/懒惰（根据照片）。
+配饰：在头部周围添加可爱的小涂鸦，如汗珠、问号或闪光。
+文字：在底部添加手写的中文文字：'[搞快点 / 累了 / 暗中观察]'。确保文字风格潦草而有趣。`,
+      tags: ["表情包", "AI生成"],
+      source: "Wechat@01Founder",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/pet_sticker.png",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
+    },
   ],
 };

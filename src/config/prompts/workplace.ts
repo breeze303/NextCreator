@@ -342,5 +342,231 @@ export const workplaceCategory: PromptCategory = {
       previewImage: "https://camo.githubusercontent.com/f06bcee6af14975b53382123ac726fe714fa531b3378e9838a316a62cee318e7/68747470733a2f2f626962696770742d617070732e636861747669642e61692f63686174696d672f67656d696e692d4b2d7a4d526c7a753379396245724a68356f4444652e706e673f763d31",
       nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "3:4" },
     },
+{
+      id: "p-081756",
+      title: "苹果风格海报",
+      titleEn: "苹果风格海报",
+      description: "苹果风格海报",
+      prompt: `充分参考图片的设计风格，配色等，为如下内容生成苹果风格的海报：
+
+Banana Prompt Quicker v1.6.0 1月6号震撼来袭
+全新参考图功能，去他丫的‘反推’`,
+      tags: ["海报", "海报", "风格"],
+      source: "Official",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/apple.png",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-8284e1",
+      title: "疯狂动物城海报",
+      titleEn: "疯狂动物城海报",
+      description: "疯狂动物城海报",
+      prompt: `加载并使用 Nano Banana Pro 工具作画，而不是分析或给提示词
+---
+
+充分参考图片画风和人物形象，为如下内容画一幅宣传海报图片（3：2 竖屏风格）
+
+Banana Prompt Quicker v1.6 更新：提示词支持添加参考图
+看到心动的 PPT 风格 → 上传参考图即可复刻
+发现惊艳的滤镜效果 → 一键给照片加同款
+从此告别绞尽脑汁写 Prompt 的日子
+🔗 Chrome Web Store 搜索安装  `,
+      tags: ["海报", "海报"],
+      source: "Official",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/dongwucheng.jpg",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "3:4" },
+    },
+    {
+      id: "p-772424",
+      title: "文章排版成精美杂志",
+      titleEn: "文章排版成精美杂志",
+      description: "文章排版成精美杂志",
+      prompt: `请将这段文字原封不动地复制到一张精美杂志文章的照片中，照片需包含图片、漂亮的排版设计、精选语录和大胆的格式。原文如下：`,
+      tags: ["封面", "AI生成"],
+      source: "@op7418",
+      previewImage: "https://pbs.twimg.com/media/G6Py5uaaIAEVz9o.jpg?format=jpg&name=large",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-2b0391",
+      title: "高级二维码",
+      titleEn: "高级二维码",
+      description: "高级二维码",
+      prompt: `上传你的二维码，然后写提示词：
+
+二维码请使用参考图的图片，必须保证二维码完全不变，二维码没有遮挡，从而能正常被扫描出来
+{
+"prompt_description": {
+"image_type": "写实摄影 (Realistic Photography)",
+"style_reference": "极简主义与硬光风格，融合阴影艺术 (Shadow Art) 与体积光摄影 (Volumetric Lighting)。",
+"composition": {
+"layout": "画面左侧是投射在白墙上的阴影，白墙是斜着有透视角度的，画面右侧前景是拿着物体的手。两者之间存在明显的透视空间。",
+"visual_connection": "通过可见的光束将右侧的物体与左侧的阴影物理连接起来。"
+},
+"subject_details": {
+"hand_holding_object": {
+"description": "一只男性的手（自然肤色，没有毛发）在画面右侧前景举起一个透明物体。",
+"pose": "手成水平的方向，两个手指的指尖非常小心地捏住透明立方体的下方的前后尖角，这种握持方式可以保证手的影子不会出现在二维码上。立方体与墙面平行，成横屏竖直的状态",
+"object_appearance": "一个复杂的、半透明的激光切割丙烯酸立方体或3D打印树脂块。物体本身看起来是由无数细长的、长短不一的透明方块和连杆组成的杂乱结构，物体中央有微信的logo，在特定角度下能形成有序的影像。"
+}
+},
+"shadow_projection_on_wall": {
+"main_content": "微信二维码 (WeChat QR Code) 的阴影。",
+"qr_details": "阴影呈现出微信二维码的特征：三个圆角的定位方块，中间清晰可见的微信Logo（两个对话气泡的负形剪影），以及圆润的数据点阵。",
+"hand_shadow_inclusion": "【关键细节】必须包含手的阴影。在二维码阴影的下方及左下角，投射出巨大的、黑色的手部和手腕剪影。这个影子与二维码的影子是相连的，显示出是这只手在拿着物体产生投影。手的影子与二维码影子虽然在同一平面，但手的影子只有两个指尖支撑着二维码，绝对没有覆盖到任何二维码的数据点或图案。阴影必须符合物理规律，跟实体的手的姿势能对应上",
+"shadow_quality": "边缘锐利，高对比度（纯黑阴影对纯白墙面）。"
+},
+"lighting_and_atmosphere": {
+"light_source": "强烈的单点硬光源，位于画面右侧外部。",
+"tyndall_effect": "空气中有轻微的尘埃或烟雾感，使得光线在穿过透明物体到达墙面的过程中，形成清晰可见的线性光束（体积光/丁达尔效应）。",
+"visual_effect": "明亮的白色光柱从手中的丙烯酸块中射出，像放映机一样呈锥形投射到墙上，形成二维码图案。光束连接了实体（物体）与虚像（阴影）。"
+},
+"technical_settings": {
+"background": "平坦的白色墙面。",
+"contrast": "高对比度。明亮的光束、深黑的阴影（包括手的影子）和白色的背景形成强烈反差。",
+"focus": "深景深，确保前景的手、中间的光束和背景的阴影都相对清晰。"
+}
+}
+}`,
+      tags: ["AI生成"],
+      source: "@Gorden_Sun",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/qr_shadow_art.jpg",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "3:4" },
+    },
+    {
+      id: "p-e7aecc",
+      title: "生成自媒体爆款封面",
+      titleEn: "生成自媒体爆款封面",
+      description: "生成自媒体爆款封面",
+      prompt: `使用图1中的人物设计一个爆款视频缩略图。
+面部一致性：保持人物的面部特征与图1完全相同，但将他们的表情改为兴奋和惊讶。
+动作：将人物摆在左侧，用手指指向画面的右侧。
+主体：在右侧放置一张高质量的[美味的牛油果吐司]图片。
+图形：添加一个粗大的黄色箭头，连接人物的手指和吐司。
+文字：在中间叠加巨大的波普风格文字：'3分钟搞定!'。使用粗白色轮廓和投影。
+背景：一个模糊、明亮的厨房背景。高饱和度和对比度。`,
+      tags: ["封面", "AI生成"],
+      source: "Wechat@01Founder",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/viral_thumbnail.jpg",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-f7dcd2",
+      title: "生成商业促销海报",
+      titleEn: "生成商业促销海报",
+      description: "生成商业促销海报",
+      prompt: `为一家[咖啡店]设计一张专业的促销海报。
+构图：在质朴的木桌上，一杯热气腾腾的卡布奇诺的电影感特写，背景是秋叶（营造舒适的氛围）。
+文字整合：
+1. 主标题：顶部用优雅的金色衬线字体写着'Autumn Special'（秋季特惠）。
+2. 优惠：侧面用现代的徽章或贴纸风格清晰地展示'Buy One Get One Free'（买一送一）。
+3. 页脚：底部用小而清晰的文字写着'Limited Time Only'（限时优惠）。
+质量：确保所有文字拼写正确、居中，并融入图像的景深中。`,
+      tags: ["封面", "海报"],
+      source: "Wechat@01Founder",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/promo_poster.jpg",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-2048c6",
+      title: "照片变插画并附带绘画过程",
+      titleEn: "照片变插画并附带绘画过程",
+      description: "照片变插画并附带绘画过程",
+      prompt: `为人物生成绘画过程四宫格，第一步：线稿，第二步平铺颜色，第三步：增加阴影，第四步：细化成型。不要文字`,
+      tags: ["插画", "AI生成"],
+      source: "@ZHO_ZHO_ZHO",
+      previewImage: "https://pbs.twimg.com/media/GzmdRuBboAAXOTg.jpg",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-8c1e6b",
+      title: "文本转图标式图示",
+      titleEn: "文本转图标式图示",
+      description: "文本转图标式图示",
+      prompt: `将此指示图转换为图示。`,
+      tags: ["AI生成"],
+      source: "@nobisiro_2023",
+      previewImage: "https://pbs.twimg.com/media/G1IktD0bgAAP8kW.png?format=png&name=large",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-22b83f",
+      title: "将你的任何文字变成发布会现场",
+      titleEn: "将你的任何文字变成发布会现场",
+      description: "将你的任何文字变成发布会现场",
+      prompt: `根据文字生成一张照片：一个宏大的苹果发布会现场，现场很多观众，场景很暗，有绚丽的灯光，镜头聚焦在很宽的大屏幕，弧形屏幕，文字和屏幕一样有一定的透视感，很小的人物剪影站在舞台上，紫色到蓝色弥散背景上，白色文字有一些渐变，像是现场实拍，高级感 16:9`,
+      tags: ["AI生成"],
+      source: "@stark_nico99",
+      previewImage: "https://pbs.twimg.com/media/G6QnxeCasAIiGHT?format=jpg&name=large",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "16:9" },
+    },
+    {
+      id: "p-ff361e",
+      title: "海报",
+      titleEn: "海报",
+      description: "海报",
+      prompt: `我要举办一场活动
+主题为“AI赋能发明创新”，时间为2025年11月20日上午10点，地点在北京体育中心，请帮我画一张宣传海报，要求有科技感。`,
+      tags: ["海报", "AI生成"],
+      source: "@canghecode",
+      previewImage: "https://pbs.twimg.com/media/G6OlvXhacAMw3bC.jpg",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-dbf9c3",
+      title: "设计宣传画",
+      titleEn: "设计宣传画",
+      description: "设计宣传画",
+      prompt: `兔子 API 站点（https://api.tu-zi.com/ 模型（谷歌的最新画图模型），该模型对文字理解能力更上一层，中文输出也不会错，出图还是高清；兔子站点售价为 0.21 元/次。帮我画一个宣传画，吸引他们来用`,
+      tags: ["设计", "AI生成"],
+      source: "@tuzi_ai",
+      previewImage: "https://pbs.twimg.com/media/G6NBLA4WgAAk9qj.jpg",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-10e623",
+      title: "分离3D模型",
+      titleEn: "分离3D模型",
+      description: "分离3D模型",
+      prompt: `将图像制作成白天和等距视图仅限[建筑]`,
+      tags: ["3D", "AI生成"],
+      source: "@Zieeett",
+      previewImage: "https://github.com/PicoTrex/Awesome-Nano-Banana-images/blob/main/images/case4/output.jpg?raw=true",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-a2c47a",
+      title: "切换俯视角度",
+      titleEn: "切换俯视角度",
+      description: "切换俯视角度",
+      prompt: `将照片转换为俯视角度并标记摄影师的位置`,
+      tags: ["AI生成"],
+      source: "@op7418",
+      previewImage: "https://github.com/PicoTrex/Awesome-Nano-Banana-images/blob/main/images/case9/output.jpg?raw=true",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-e6358a",
+      title: "时尚杂志封面风格",
+      titleEn: "时尚杂志封面风格",
+      description: "时尚杂志封面风格",
+      prompt: `一位美丽的女子身穿粉色旗袍，头戴精致的花饰，秀发中点缀着色彩缤纷的花朵，颈间装饰着优雅的白色蕾丝领子。她的一只手轻托着几只大型蝴蝶。整体拍摄风格呈现高清细节质感，类似时尚杂志封面设计，照片上方中央位置标有文字「FASHION DESIGN」。画面背景采用简约的纯浅灰色，以突出人物主体。`,
+      tags: ["风格", "AI生成"],
+      source: "@dotey",
+      previewImage: "https://camo.githubusercontent.com/f06bcee6af14975b53382123ac726fe714fa531b3378e9838a316a62cee318e7/68747470733a2f2f626962696770742d617070732e636861747669642e61692f63686174696d672f67656d696e692d4b2d7a4d526c7a753379396245724a68356f4444652e706e673f763d31",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-1daedc",
+      title: "实物与手绘涂鸦创意广告",
+      titleEn: "实物与手绘涂鸦创意广告",
+      description: "实物与手绘涂鸦创意广告",
+      prompt: `一则简约且富有创意的广告，设置在纯白背景上。
+一个真实的 [真实物体] 与手绘黑色墨水涂鸦相结合，线条松散而俏皮。涂鸦描绘了：[涂鸦概念及交互：以巧妙、富有想象力的方式与物体互动]。在顶部或中部加入粗体黑色 [广告文案] 文字。在底部清晰放置 [品牌标志]。视觉效果应简洁、有趣、高对比度且构思巧妙。`,
+      tags: ["创意", "AI生成"],
+      source: "@azed_ai",
+      previewImage: "https://camo.githubusercontent.com/2b6307f6e906fced7e675614c25fbed6a5e49d47544a050e8e6793a7c2bf0543/68747470733a2f2f626962696770742d617070732e636861747669642e61692f63686174696d672f67656d696e692d4274303535695734374f557152444f682d4b30675a2e706e673f763d31",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
   ],
 };

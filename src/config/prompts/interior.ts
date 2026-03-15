@@ -38,5 +38,24 @@ Overall Style: Apply a consistent Modern Minimalist style with warm oak wood flo
       previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/furniture_preview.jpg",
       nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "16:9" },
     },
+{
+      id: "p-0b16a3",
+      title: "户型图生成全屋设计方案",
+      titleEn: "户型图生成全屋设计方案",
+      description: "户型图生成全屋设计方案",
+      prompt: `根据上传的2D平面图，在单张图片中生成一个专业的室内设计演示板。
+布局：最终图像应为一个拼贴画，顶部有一张大的主图，下面有几张较小的图。
+每个板块的内容：
+1. 主图（顶部）：主要起居区的广角透视图，展示客厅和餐厅之间的连接。
+2. 小图（左下）：主卧室的视图，重点是床和窗户。
+3. 小图（中下）：家庭办公室/书房的视图。
+4. 小图（右下）：显示家具布局的3D俯视平面图。
+整体风格：在所有图片中应用一致的现代极简风格，采用暖色橡木地板和灰白色墙壁。
+质量：照片级渲染，柔和的自然光。`,
+      tags: ["装修", "设计"],
+      source: "Wechat@01Founder",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/floor_plan_render.jpg",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
+    },
   ],
 };
