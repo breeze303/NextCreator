@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, Sparkles, Zap, ImagePlus, ChevronDown, Check, Upload, Trash2, Tag, Eye } from "lucide-react";
+import { X, Sparkles, Zap, Flame, ImagePlus, ChevronDown, Check, Upload, Trash2, Tag, Eye } from "lucide-react";
 import type { PromptNodeTemplate } from "@/config/promptConfig";
 import type { UserPrompt, CreatePromptInput } from "@/stores/userPromptStore";
 import { ImagePreviewModal } from "@/components/ui/ImagePreviewModal";
@@ -35,6 +35,15 @@ const proAspectRatioOptions = [
   { value: "21:9", label: "21:9 超宽" },
 ] as const;
 
+// NB2 宽高比选项（NanoBanana2 - 14 个，Pro 的 10 个 + 4 个极端比例）
+const nb2AspectRatioOptions = [
+  ...proAspectRatioOptions,
+  { value: "1:4", label: "1:4 超窄竖" },
+  { value: "4:1", label: "4:1 超宽横" },
+  { value: "1:8", label: "1:8 极窄竖" },
+  { value: "8:1", label: "8:1 极宽横" },
+] as const;
+
 export function PromptEditModal({
   isOpen,
   onClose,
@@ -55,7 +64,7 @@ export function PromptEditModal({
   const [tagInput, setTagInput] = useState("");
   const [previewImage, setPreviewImage] = useState<string | undefined>(undefined);
   const [requiresImageInput, setRequiresImageInput] = useState(false);
-  const [generatorType, setGeneratorType] = useState<"pro" | "fast">("fast");
+  const [generatorType, setGeneratorType] = useState<"pro" | "fast" | "nb2">("nb2");
   const [aspectRatio, setAspectRatio] = useState<PromptNodeTemplate["aspectRatio"]>("1:1");
 
   // 初始化/重置表单
@@ -92,7 +101,7 @@ export function PromptEditModal({
         setTagInput("");
         setPreviewImage(undefined);
         setRequiresImageInput(false);
-        setGeneratorType("fast");
+        setGeneratorType("nb2");
         setAspectRatio("1:1");
       }
     }
@@ -118,18 +127,25 @@ export function PromptEditModal({
   }, [onClose]);
 
   // 根据生成器类型选择宽高比选项
-  const aspectRatioOptions = generatorType === "pro" ? proAspectRatioOptions : basicAspectRatioOptions;
+  const aspectRatioOptions = generatorType === "nb2"
+    ? nb2AspectRatioOptions
+    : generatorType === "pro"
+      ? proAspectRatioOptions
+      : basicAspectRatioOptions;
 
   // 切换生成器类型时，检查并调整宽高比
-  const handleGeneratorTypeChange = useCallback((type: "pro" | "fast") => {
+  const handleGeneratorTypeChange = useCallback((type: "pro" | "fast" | "nb2") => {
     setGeneratorType(type);
 
-    // 如果切换到 Fast，但当前宽高比不在 Fast 支持的选项中，重置为 1:1
-    if (type === "fast") {
-      const supportedValues = basicAspectRatioOptions.map(o => o.value);
-      if (!supportedValues.includes(aspectRatio as any)) {
-        setAspectRatio("1:1");
-      }
+    // 如果当前宽高比不在目标类型支持的选项中，重置为 1:1
+    const targetOptions = type === "nb2"
+      ? nb2AspectRatioOptions
+      : type === "pro"
+        ? proAspectRatioOptions
+        : basicAspectRatioOptions;
+    const supportedValues = targetOptions.map(o => o.value);
+    if (!supportedValues.includes(aspectRatio as any)) {
+      setAspectRatio("1:1");
     }
   }, [aspectRatio]);
 
@@ -389,27 +405,39 @@ export function PromptEditModal({
             <div className="flex gap-2">
               <button
                 type="button"
-                className={`flex-1 btn btn-sm gap-2 ${
+                className={`flex-1 btn btn-sm gap-1.5 ${
                   generatorType === "fast"
                     ? "btn-warning"
                     : "btn-ghost border-base-300"
                 }`}
                 onClick={() => handleGeneratorTypeChange("fast")}
               >
-                <Zap className="w-4 h-4" />
-                Fast 模型
+                <Zap className="w-3.5 h-3.5" />
+                NanoBanana
               </button>
               <button
                 type="button"
-                className={`flex-1 btn btn-sm gap-2 ${
+                className={`flex-1 btn btn-sm gap-1.5 ${
                   generatorType === "pro"
                     ? "btn-secondary"
                     : "btn-ghost border-base-300"
                 }`}
                 onClick={() => handleGeneratorTypeChange("pro")}
               >
-                <Sparkles className="w-4 h-4" />
-                Pro 模型
+                <Sparkles className="w-3.5 h-3.5" />
+                Pro
+              </button>
+              <button
+                type="button"
+                className={`flex-1 btn btn-sm gap-1.5 ${
+                  generatorType === "nb2"
+                    ? "btn-info"
+                    : "btn-ghost border-base-300"
+                }`}
+                onClick={() => handleGeneratorTypeChange("nb2")}
+              >
+                <Flame className="w-3.5 h-3.5" />
+                NB2
               </button>
             </div>
 
