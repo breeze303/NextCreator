@@ -308,6 +308,7 @@ export const PPTContentNode = memo(({ id, data, selected }: NodeProps<PPTContent
             connectedImages={getConnectedImages()}
             onInpaintPage={execution.inpaintPage}
             onRevertInpaint={execution.revertPageInpaint}
+            onRevertRetry={execution.revertPageRetry}
             onStartAll={execution.startGeneration}
             onPauseAll={execution.pauseGeneration}
             onResumeAll={execution.resumeGeneration}

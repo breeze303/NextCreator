@@ -612,6 +612,20 @@ export function usePPTContentExecution({
         update({ generationStatus: "running" });
       }
 
+      // 保存重试前快照（供撤销使用）
+      const page = currentData?.pages.find((p) => p.id === pageId);
+      if (page && (page.result || page.manualImage)) {
+        updatePageState(pageId, {
+          retrySnapshot: {
+            result: page.result,
+            manualImage: page.manualImage,
+            manualImagePath: page.manualImagePath,
+            manualThumbnail: page.manualThumbnail,
+            manualThumbnailPath: page.manualThumbnailPath,
+          },
+        });
+      }
+
       updatePageState(pageId, { status: "pending", error: undefined });
       await generatePageImage(pageId);
 
@@ -933,6 +947,32 @@ export function usePPTContentExecution({
     [nodeId, updatePageState]
   );
 
+  /**
+   * 撤销重试：恢复重试前的图片状态
+   */
+  const revertPageRetry = useCallback(
+    (pageId: string) => {
+      const { nodes } = useFlowStore.getState();
+      const currentNode = nodes.find((n) => n.id === nodeId);
+      const currentData = currentNode?.data as PPTContentNodeData | undefined;
+      const page = currentData?.pages.find((p) => p.id === pageId);
+      const snapshot = page?.retrySnapshot;
+      if (!snapshot) return;
+
+      updatePageState(pageId, {
+        result: snapshot.result,
+        manualImage: snapshot.manualImage,
+        manualImagePath: snapshot.manualImagePath,
+        manualThumbnail: snapshot.manualThumbnail,
+        manualThumbnailPath: snapshot.manualThumbnailPath,
+        retrySnapshot: undefined,
+        status: "completed",
+      });
+      toast.success(`第 ${page?.pageNumber ?? ""} 页已撤销重试`);
+    },
+    [nodeId, updatePageState]
+  );
+
   return {
     // 大纲生成
     generateOutline,
@@ -950,5 +990,6 @@ export function usePPTContentExecution({
     uploadPageImage,
     inpaintPage,
     revertPageInpaint,
+    revertPageRetry,
   };
 }

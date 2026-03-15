@@ -19,6 +19,7 @@ interface PagesTabProps {
   connectedImages?: ConnectedImageInfo[];
   onInpaintPage: (pageId: string, maskBase64: string, prompt: string, originalBase64: string) => void;
   onRevertInpaint: (pageId: string) => void;
+  onRevertRetry: (pageId: string) => void;
   onStartAll: () => void;
   onPauseAll: () => void;
   onResumeAll: () => void;
@@ -39,6 +40,7 @@ export function PagesTab({
   connectedImages = [],
   onInpaintPage,
   onRevertInpaint,
+  onRevertRetry,
   onStartAll,
   onPauseAll,
   onResumeAll,
@@ -216,6 +218,7 @@ export function PagesTab({
             connectedImages={connectedImages}
             onInpaintPage={onInpaintPage}
             onRevertInpaint={onRevertInpaint}
+            onRevertRetry={onRevertRetry}
             disabled={false}
           />
         ))}
