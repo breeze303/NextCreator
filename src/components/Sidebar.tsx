@@ -16,6 +16,7 @@ import {
   Eye,
   User,
   Heart,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useCanvasStore, type SidebarView } from "@/stores/canvasStore";
 import { useUserPromptStore, type UserPrompt, type CreatePromptInput } from "@/stores/userPromptStore";
@@ -64,6 +65,14 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
 
   // 提示词面板相关状态
   const [promptSearchQuery, setPromptSearchQuery] = useState("");
+  // 搜索范围选项
+  const [searchScopes, setSearchScopes] = useState({
+    title: true,       // 标题
+    description: true, // 描述
+    tags: true,        // 标签
+    prompt: false,     // 提示词内容
+  });
+  const [showSearchScopes, setShowSearchScopes] = useState(false);
   // 提示词分类默认收起
   const [expandedPromptCategories, setExpandedPromptCategories] = useState<Set<string>>(
     new Set()
@@ -219,22 +228,26 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
     [searchQuery]
   );
 
-  // 过滤提示词（缓存计算结果，仅搜索词变化时重新计算）
-  const filteredPromptCategories = useMemo(() =>
-    promptCategories
+  // 过滤提示词（缓存计算结果，搜索词或搜索范围变化时重新计算）
+  const filteredPromptCategories = useMemo(() => {
+    const q = promptSearchQuery.toLowerCase();
+    if (!q) return promptCategories;
+    return promptCategories
       .map((category) => ({
         ...category,
-        prompts: category.prompts.filter(
-          (prompt) =>
-            prompt.title.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
-            prompt.titleEn.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
-            prompt.description.toLowerCase().includes(promptSearchQuery.toLowerCase()) ||
-            prompt.tags.some((tag) => tag.toLowerCase().includes(promptSearchQuery.toLowerCase()))
-        ),
+        prompts: category.prompts.filter((prompt) => {
+          if (searchScopes.title && (
+            prompt.title.toLowerCase().includes(q) ||
+            prompt.titleEn.toLowerCase().includes(q)
+          )) return true;
+          if (searchScopes.description && prompt.description.toLowerCase().includes(q)) return true;
+          if (searchScopes.tags && prompt.tags.some((tag) => tag.toLowerCase().includes(q))) return true;
+          if (searchScopes.prompt && prompt.prompt.toLowerCase().includes(q)) return true;
+          return false;
+        }),
       }))
-      .filter((category) => category.prompts.length > 0),
-    [promptSearchQuery]
-  );
+      .filter((category) => category.prompts.length > 0);
+  }, [promptSearchQuery, searchScopes]);
 
   // 获取当前打开菜单的画布
   const menuCanvas = menuOpenId ? canvases.find((c) => c.id === menuOpenId) : null;
@@ -485,12 +498,50 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
                   新建
                 </button>
               </div>
-              <Input
-                isSearch
-                placeholder="搜索提示词..."
-                value={promptSearchQuery}
-                onChange={(e) => setPromptSearchQuery(e.target.value)}
-              />
+              <div className="flex items-center gap-1.5">
+                <div className="flex-1">
+                  <Input
+                    isSearch
+                    placeholder="搜索提示词..."
+                    value={promptSearchQuery}
+                    onChange={(e) => setPromptSearchQuery(e.target.value)}
+                  />
+                </div>
+                <button
+                  className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${
+                    showSearchScopes
+                      ? "bg-primary/15 text-primary"
+                      : "text-base-content/40 hover:text-base-content/60 hover:bg-base-200"
+                  }`}
+                  onClick={() => setShowSearchScopes(!showSearchScopes)}
+                  title="搜索范围设置"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+              {/* 搜索范围选项 */}
+              {showSearchScopes && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {([
+                    { key: "title" as const, label: "标题" },
+                    { key: "description" as const, label: "描述" },
+                    { key: "tags" as const, label: "标签" },
+                    { key: "prompt" as const, label: "提示词内容" },
+                  ]).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                        searchScopes[key]
+                          ? "bg-primary/15 border-primary/30 text-primary"
+                          : "bg-base-200/50 border-base-300/60 text-base-content/40 hover:text-base-content/60"
+                      }`}
+                      onClick={() => setSearchScopes((prev) => ({ ...prev, [key]: !prev[key] }))}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 提示词列表 */}
