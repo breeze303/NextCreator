@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/Input";
 import { useModal, getModalAnimationClasses } from "@/hooks/useModal";
 import { NODE_ALLOWED_PROTOCOLS } from "@/types";
 import type { Provider, NodeProviderMapping, ProviderProtocol } from "@/types";
-import { getProviderBaseUrlDisplay, isBuiltinProvider } from "@/services/providerResolution";
+import { isBuiltinProvider } from "@/services/providerResolution";
 
 // 协议类型配置
 const protocolConfig: { key: ProviderProtocol; label: string }[] = [
