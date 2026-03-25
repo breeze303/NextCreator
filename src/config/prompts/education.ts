@@ -361,6 +361,44 @@ II. 周围装饰元素
       previewImage: "https://pbs.twimg.com/media/GzSjUMLWYAAq3-w.jpg",
       nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "16:9" },
     },
+{
+      id: "p-f72aff",
+      title: "文章转漫画风格总结图",
+      titleEn: "文章转漫画风格总结图",
+      description: "文章转漫画风格总结图",
+      prompt: `用图片总结如下文章，图片文字用中文，详细一点，图片美观一些，漫画风格
+
+文章：https://blog.google/products/gemini/prompting-tips-nano-banana-pro/`,
+      tags: ["总结", "风格", "漫画"],
+      source: "@LufzzLiz",
+      previewImage: "https://pbs.twimg.com/media/G6NXrdNaQAATevh?format=jpg&name=medium",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
+    {
+      id: "p-6aab36",
+      title: "概念可视化/知识地图",
+      titleEn: "概念可视化/知识地图",
+      description: "概念可视化/知识地图",
+      prompt: `创建一个解释[光合作用]的教育信息图。
+视觉元素：展示关键组成部分：太阳、一株绿色植物、水（H2O）进入根部、二氧化碳（CO2）进入叶片，以及氧气（O2）被释放。
+风格：简洁、扁平化的矢量插图，适合高中科学教科书。使用箭头表示能量和物质的流动。
+标签：用简体中文清晰地标注每个元素。`,
+      tags: ["AI生成"],
+      source: "Wechat@01Founder",
+      previewImage: "https://cdn.jsdelivr.net/gh/glidea/banana-prompt-quicker@main/images/concept_visualization.png",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "16:9" },
+    },
+    {
+      id: "p-3467bf",
+      title: "条漫",
+      titleEn: "条漫",
+      description: "条漫",
+      prompt: `做一些具有教育意义的条漫，使用中文，讲清赤壁之战，图文信息丰富。（在阿真基础上做了些改动）`,
+      tags: ["AI生成"],
+      source: "@canghecode",
+      previewImage: "https://pbs.twimg.com/media/G6OlabfakAASRaC.jpg",
+      nodeTemplate: { requiresImageInput: false, generatorType: "pro", aspectRatio: "1:1" },
+    },
   ],
 };
 

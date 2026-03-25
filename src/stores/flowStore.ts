@@ -332,13 +332,19 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     nodeIds.push(generatorNodeId);
     const generatorType = template.generatorType === "pro"
       ? "imageGeneratorProNode"
-      : "imageGeneratorFastNode";
+      : template.generatorType === "nb2"
+        ? "imageGeneratorNB2Node"
+        : "imageGeneratorFastNode";
     const generatorLabel = template.generatorType === "pro"
       ? "NanoBanana Pro"
-      : "NanoBanana";
+      : template.generatorType === "nb2"
+        ? "NanoBanana2"
+        : "NanoBanana";
     const generatorModel = template.generatorType === "pro"
       ? "gemini-3-pro-image-preview"
-      : "gemini-2.5-flash-image";
+      : template.generatorType === "nb2"
+        ? "gemini-3.1-flash-image-preview"
+        : "gemini-2.5-flash-image";
 
     newNodes.push({
       id: generatorNodeId,
@@ -348,7 +354,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
         label: generatorLabel,
         model: generatorModel,
         aspectRatio: template.aspectRatio,
-        imageSize: template.generatorType === "pro" ? "2K" : "1K",
+        imageSize: template.generatorType === "pro" ? "2K" : "1K", // NB2 和 Fast 默认 1K
         status: "idle",
       } as CustomNodeData,
     });

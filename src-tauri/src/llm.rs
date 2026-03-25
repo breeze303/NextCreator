@@ -173,6 +173,19 @@ fn extract_image_from_chat_content(content: &serde_json::Value) -> (Option<Strin
                 return (Some(cleaned), None);
             }
         }
+        let url_match = s
+            .split_whitespace()
+            .find(|t| t.starts_with("http://") || t.starts_with("https://"));
+        if let Some(url) = url_match {
+            let cleaned = url
+                .trim_matches(')')
+                .trim_matches(']')
+                .trim_matches('(')
+                .trim_matches('[')
+                .trim_matches('"');
+            return (None, Some(cleaned.to_string()));
+        }
+
         return (None, None);
     }
 

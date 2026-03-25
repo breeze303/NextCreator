@@ -33,6 +33,7 @@ interface PageItemRowProps {
   disabled?: boolean;
   onInpaintPage: (pageId: string, maskBase64: string, prompt: string, originalBase64: string) => void;
   onRevertInpaint: (pageId: string) => void;
+  onRevertRetry: (pageId: string) => void;
 }
 
 // 静态状态图标映射（running 状态在组件内部动态渲染）
@@ -93,6 +94,7 @@ export function PageItemRow({
   disabled = false,
   onInpaintPage,
   onRevertInpaint,
+  onRevertRetry,
 }: PageItemRowProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [showInpaint, setShowInpaint] = useState(false);
@@ -128,6 +130,11 @@ export function PageItemRow({
     onRevertInpaint(item.id);
   }, [item.id, onRevertInpaint]);
 
+  // ── 撤销重试 ─────────────────────────────────────────────
+  const handleRevertRetry = useCallback(() => {
+    onRevertRetry(item.id);
+  }, [item.id, onRevertRetry]);
+
   // ── 文件上传 ─────────────────────────────────────────────
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,6 +156,7 @@ export function PageItemRow({
   // 从节点数据读取重绘状态（面板关闭后仍持久）
   const showInpaintingOverlay = item.inpaintStatus === "generating";
   const showRevertBadge = !!item.inpaintSnapshot && item.inpaintStatus !== "generating";
+  const showRevertRetryBadge = !!item.retrySnapshot && item.status === "completed";
   const isManual = !!(item.manualImage || item.manualImagePath);
 
   return (
@@ -267,6 +275,17 @@ export function PageItemRow({
               >
                 <RotateCcw className="w-3 h-3" />
                 撤销重绘
+              </button>
+            )}
+            {/* 撤销重试按钮：在缩略图下方，仅当有重试快照时显示 */}
+            {showRevertRetryBadge && (
+              <button
+                className="flex items-center gap-1 text-[11px] text-base-content/50 hover:text-error transition-colors"
+                onClick={handleRevertRetry}
+                title="撤销此次重试，恢复上一次的图片"
+              >
+                <RotateCcw className="w-3 h-3" />
+                撤销重试
               </button>
             )}
           </div>

@@ -13,6 +13,8 @@ interface SelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  /** 尺寸：默认 "sm"，"xs" 为更紧凑的版本 */
+  size?: "sm" | "xs";
   /** 是否通过 Portal 渲染到 body，默认 true；在部分桌面环境下可关闭以避免合成问题 */
   usePortal?: boolean;
 }
@@ -23,6 +25,7 @@ export function Select({
   onChange,
   placeholder = "请选择",
   className = "",
+  size = "sm",
   usePortal = true,
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -117,8 +120,9 @@ export function Select({
           key={option.value}
           type="button"
           className={`
-            flex items-center justify-between w-full px-3 py-2 text-sm text-left
+            flex items-center justify-between w-full text-left
             transition-colors duration-150
+            ${size === "xs" ? "px-2 py-1.5 text-xs" : "px-3 py-2 text-sm"}
             ${option.value === value
               ? "bg-primary/10 text-primary"
               : "text-base-content hover:bg-base-200"
@@ -152,10 +156,11 @@ export function Select({
         ref={buttonRef}
         type="button"
         className={`
-          flex items-center justify-between w-full h-8 px-3 text-sm rounded-lg
+          flex items-center justify-between w-full rounded-lg
           bg-base-200/50 border border-base-300/60
           hover:bg-base-200 hover:border-base-300
           transition-colors duration-200
+          ${size === "xs" ? "h-7 px-2 text-xs" : "h-8 px-3 text-sm"}
           ${isOpen ? "ring-2 ring-primary/20 border-primary/50 bg-base-100" : ""}
         `}
         onClick={(e) => {

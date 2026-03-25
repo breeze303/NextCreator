@@ -40,7 +40,7 @@ import {
 // 节点模板配置 - 定义拖拽到画布时创建的节点组合
 export interface PromptNodeTemplate {
   requiresImageInput: boolean;  // 是否需要图片输入节点
-  generatorType: "pro" | "fast"; // 使用哪个生成器
+  generatorType: "pro" | "fast" | "nb2"; // 使用哪个生成器（fast=NanoBanana, pro=NanoBananaPro, nb2=NanoBanana2）
   aspectRatio: ImageGenerationParams["aspectRatio"]; // 默认宽高比
 }
 

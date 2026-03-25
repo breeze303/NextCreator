@@ -1,6 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, Pencil, Trash2, Save, Server, AlertTriangle } from "lucide-react";
+import {
+  X,
+  Plus,
+  Pencil,
+  Trash2,
+  Server,
+  AlertTriangle,
+  Image,
+  Video,
+  MessageSquare,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+} from "lucide-react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
@@ -45,6 +58,50 @@ const nodeTypeConfig: { key: keyof NodeProviderMapping; label: string; descripti
   { key: "llm", label: "PPT 大纲生成", description: "PPT 内容节点的大纲生成部分" },
 ];
 
+// 节点分组配置
+interface NodeGroup {
+  id: string;
+  label: string;
+  icon: typeof Image;
+  colorClass: string;
+  bgClass: string;
+  nodeKeys: (keyof NodeProviderMapping)[];
+}
+
+const nodeGroups: NodeGroup[] = [
+  {
+    id: "image",
+    label: "图片生成",
+    icon: Image,
+    colorClass: "text-blue-500",
+    bgClass: "bg-blue-500/10",
+    nodeKeys: [
+      "imageGeneratorPro", "imageGeneratorFast", "imageGeneratorNB2",
+      "dalleGenerator", "fluxGenerator", "gptImageGenerator",
+      "doubaoGenerator", "zImageGenerator",
+    ],
+  },
+  {
+    id: "video",
+    label: "视频生成",
+    icon: Video,
+    colorClass: "text-purple-500",
+    bgClass: "bg-purple-500/10",
+    nodeKeys: ["videoGenerator", "veoGenerator", "klingGenerator"],
+  },
+  {
+    id: "llm",
+    label: "文本 / LLM",
+    icon: MessageSquare,
+    colorClass: "text-green-500",
+    bgClass: "bg-green-500/10",
+    nodeKeys: ["llmContent", "llm"],
+  },
+];
+
+// 根据 key 查找节点配置
+const nodeConfigMap = new Map(nodeTypeConfig.map((n) => [n.key, n]));
+
 export function ProviderPanel() {
   const {
     settings,
@@ -56,14 +113,13 @@ export function ProviderPanel() {
     setNodeProvider,
   } = useSettingsStore();
 
-  // 本地状态：节点供应商映射
-  const [localNodeProviders, setLocalNodeProviders] = useState<NodeProviderMapping>({});
-
   // 编辑/添加供应商的弹窗状态
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
   const [isAddingProvider, setIsAddingProvider] = useState(false);
   // 删除确认状态
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  // 分组折叠状态（默认全部展开）
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // 使用统一的 modal hook
   const { isVisible, isClosing, handleClose, handleBackdropClick } = useModal({
@@ -74,25 +130,59 @@ export function ProviderPanel() {
   // 获取动画类名
   const { backdropClasses, contentClasses } = getModalAnimationClasses(isVisible, isClosing);
 
-  // 同步初始值
-  useEffect(() => {
-    if (isProviderPanelOpen) {
-      setLocalNodeProviders(settings.nodeProviders || {});
-    }
-  }, [isProviderPanelOpen, settings.nodeProviders]);
-
   if (!isProviderPanelOpen) return null;
 
   // 确保 providers 数组存在
   const providers = settings.providers || [];
+  const nodeProviders = settings.nodeProviders || {};
 
-  // 保存节点配置
-  const handleSave = () => {
-    // 更新节点供应商映射
-    for (const { key } of nodeTypeConfig) {
-      setNodeProvider(key, localNodeProviders[key]);
+  // 计算配置进度
+  const totalNodes = nodeTypeConfig.length;
+  const configuredNodes = nodeTypeConfig.filter(
+    ({ key }) => nodeProviders[key] && providers.some((p) => p.id === nodeProviders[key])
+  ).length;
+
+  // 切换分组折叠
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  // 自动保存：直接更新 store
+  const handleNodeProviderChange = (nodeKey: keyof NodeProviderMapping, providerId: string) => {
+    setNodeProvider(nodeKey, providerId || undefined);
+  };
+
+  // 批量分配：将供应商分配给分组内所有兼容节点
+  const handleBatchAssign = (group: NodeGroup, providerId: string) => {
+    if (!providerId) return;
+    const provider = providers.find((p) => p.id === providerId);
+    if (!provider) return;
+
+    for (const key of group.nodeKeys) {
+      // 只分配给协议兼容的节点
+      if (NODE_ALLOWED_PROTOCOLS[key].includes(provider.protocol)) {
+        setNodeProvider(key, providerId);
+      }
     }
-    closeProviderPanel();
+  };
+
+  // 获取分组内兼容的供应商列表（取所有节点兼容协议的并集）
+  const getGroupCompatibleProviders = (group: NodeGroup) => {
+    const allProtocols = new Set<ProviderProtocol>();
+    for (const key of group.nodeKeys) {
+      for (const p of NODE_ALLOWED_PROTOCOLS[key]) {
+        allProtocols.add(p);
+      }
+    }
+    return providers.filter((p) => allProtocols.has(p.protocol));
   };
 
   // 删除供应商 - 显示确认弹窗
@@ -105,16 +195,7 @@ export function ProviderPanel() {
     if (!deleteConfirm) return;
     const { id } = deleteConfirm;
     setDeleteConfirm(null);
-
     removeProvider(id);
-    // 同时清除本地状态中的映射
-    const newLocalNodeProviders = { ...localNodeProviders };
-    for (const key of Object.keys(newLocalNodeProviders) as (keyof NodeProviderMapping)[]) {
-      if (newLocalNodeProviders[key] === id) {
-        delete newLocalNodeProviders[key];
-      }
-    }
-    setLocalNodeProviders(newLocalNodeProviders);
   };
 
   return createPortal(
@@ -138,9 +219,19 @@ export function ProviderPanel() {
       >
         {/* 头部 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-base-300">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Server className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-semibold">供应商管理</h2>
+            {/* 配置进度 */}
+            {providers.length > 0 && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                configuredNodes === totalNodes
+                  ? "bg-success/15 text-success"
+                  : "bg-warning/15 text-warning"
+              }`}>
+                {configuredNodes}/{totalNodes}
+              </span>
+            )}
           </div>
           <button
             className="btn btn-ghost btn-sm btn-circle"
@@ -151,39 +242,38 @@ export function ProviderPanel() {
         </div>
 
         {/* 内容 - 可滚动 */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-5 space-y-5 overflow-y-auto flex-1">
           {/* 供应商列表区域 */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-base-content/70 uppercase tracking-wider">
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-base-content/50 uppercase tracking-wider">
               供应商列表
             </h3>
 
             {/* 供应商卡片列表 */}
             {providers.length === 0 ? (
-              <div className="text-center py-8 text-base-content/50">
-                <Server className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p>暂无供应商</p>
-                <p className="text-sm">点击下方按钮添加</p>
+              <div className="text-center py-6 text-base-content/50">
+                <Server className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">暂无供应商，点击下方按钮添加</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {providers.map((provider) => (
                   <div
                     key={provider.id}
-                    className="flex items-center justify-between p-3 bg-base-200 rounded-lg"
+                    className="flex items-center justify-between p-2.5 bg-base-200 rounded-lg"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium truncate">{provider.name}</span>
-                        <span className="px-1.5 py-0.5 text-xs rounded bg-base-300 text-base-content/70 shrink-0">
+                        <span className="text-sm font-medium truncate">{provider.name}</span>
+                        <span className="px-1.5 py-0.5 text-[10px] rounded bg-base-300 text-base-content/60 shrink-0">
                           {protocolLabels[provider.protocol] || "Google"}
                         </span>
                       </div>
-                      <div className="text-sm text-base-content/50 truncate">
-                        {getProviderBaseUrlDisplay(provider)}
+                      <div className="text-xs text-base-content/40 truncate">
+                        {provider.baseUrl}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 ml-2">
+                    <div className="flex items-center gap-0.5 ml-2">
                       <button
                         className="btn btn-ghost btn-xs btn-square"
                         onClick={() => setEditingProvider(provider)}
@@ -213,11 +303,11 @@ export function ProviderPanel() {
           </div>
 
           {/* 分隔线 */}
-          <div className="divider"></div>
+          <div className="divider my-1"></div>
 
-          {/* 节点配置区域 */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-base-content/70 uppercase tracking-wider">
+          {/* 节点配置区域 - 分组显示 */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-base-content/50 uppercase tracking-wider">
               节点配置
             </h3>
 
@@ -226,51 +316,121 @@ export function ProviderPanel() {
                 请先添加供应商
               </div>
             ) : (
-              <div className="space-y-3">
-                {nodeTypeConfig.map(({ key, label, description }) => (
-                  <div key={key} className="form-control">
-                    <label className="label py-1">
-                      <span className="label-text font-medium">{label}</span>
-                    </label>
-                    <Select
-                      value={localNodeProviders[key] || ""}
-                      placeholder="未配置"
-                      options={[
-                        { value: "", label: "未配置" },
-                        ...providers
-                          .filter((p) => NODE_ALLOWED_PROTOCOLS[key].includes(p.protocol))
-                          .map((provider) => ({
-                            value: provider.id,
-                            label: `${provider.name} (${protocolLabels[provider.protocol] || "Google"})`,
-                          })),
-                      ]}
-                      onChange={(value) =>
-                        setLocalNodeProviders({
-                          ...localNodeProviders,
-                          [key]: value || undefined,
-                        })
-                      }
-                    />
-                    <label className="label py-0.5">
-                      <span className="label-text-alt text-base-content/50">
-                        {description}
-                      </span>
-                    </label>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                {nodeGroups.map((group) => {
+                  const isCollapsed = collapsedGroups.has(group.id);
+                  const GroupIcon = group.icon;
+                  const compatibleProviders = getGroupCompatibleProviders(group);
+                  // 该分组已配置的节点数
+                  const groupConfigured = group.nodeKeys.filter(
+                    (key) => nodeProviders[key] && providers.some((p) => p.id === nodeProviders[key])
+                  ).length;
+
+                  return (
+                    <div key={group.id} className="rounded-xl border border-base-300 overflow-hidden">
+                      {/* 分组标题栏 */}
+                      <div
+                        className="flex items-center gap-2 px-3 py-2.5 bg-base-200/50 cursor-pointer select-none"
+                        onClick={() => toggleGroup(group.id)}
+                      >
+                        {/* 折叠箭头 */}
+                        {isCollapsed ? (
+                          <ChevronRight className="w-3.5 h-3.5 text-base-content/40 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-base-content/40 shrink-0" />
+                        )}
+                        {/* 分组图标 */}
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center ${group.bgClass}`}>
+                          <GroupIcon className={`w-3.5 h-3.5 ${group.colorClass}`} />
+                        </div>
+                        {/* 分组名称 + 进度 */}
+                        <span className="text-sm font-medium flex-1">{group.label}</span>
+                        <span className="text-[10px] text-base-content/40">
+                          {groupConfigured}/{group.nodeKeys.length}
+                        </span>
+                        {/* 批量分配按钮 */}
+                        {compatibleProviders.length > 0 && (
+                          <div
+                            className="ml-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Select
+                              value=""
+                              placeholder="批量分配"
+                              size="xs"
+                              options={compatibleProviders.map((p) => ({
+                                value: p.id,
+                                label: `${p.name}`,
+                              }))}
+                              onChange={(value) => handleBatchAssign(group, value)}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 节点列表（折叠时隐藏） */}
+                      {!isCollapsed && (
+                        <div className="px-3 py-1.5 space-y-1">
+                          {group.nodeKeys.map((key) => {
+                            const nodeConfig = nodeConfigMap.get(key);
+                            if (!nodeConfig) return null;
+
+                            const currentProviderId = nodeProviders[key];
+                            const isConfigured = currentProviderId && providers.some((p) => p.id === currentProviderId);
+                            const compatibleForNode = providers.filter((p) =>
+                              NODE_ALLOWED_PROTOCOLS[key].includes(p.protocol)
+                            );
+
+                            return (
+                              <div
+                                key={key}
+                                className="flex items-center gap-2 py-1.5"
+                              >
+                                {/* 配置状态指示点 */}
+                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                  isConfigured ? "bg-success" : "bg-base-content/20"
+                                }`} />
+                                {/* 节点名称 */}
+                                <span className="text-sm text-base-content/80 w-28 shrink-0 truncate" title={nodeConfig.description}>
+                                  {nodeConfig.label}
+                                </span>
+                                {/* 供应商选择 */}
+                                <div className="flex-1 min-w-0">
+                                  <Select
+                                    value={currentProviderId || ""}
+                                    placeholder="未配置"
+                                    size="xs"
+                                    options={[
+                                      { value: "", label: "未配置" },
+                                      ...compatibleForNode.map((p) => ({
+                                        value: p.id,
+                                        label: `${p.name} (${protocolLabels[p.protocol]})`,
+                                      })),
+                                    ]}
+                                    onChange={(value) => handleNodeProviderChange(key, value)}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
 
-        {/* 底部 */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-base-300 bg-base-200/50">
-          <button className="btn btn-ghost" onClick={handleClose}>
-            取消
-          </button>
-          <button className="btn btn-primary gap-2" onClick={handleSave}>
-            <Save className="w-4 h-4" />
-            保存
+        {/* 底部 - 简化为关闭按钮 */}
+        <div className="flex items-center justify-between px-6 py-3 border-t border-base-300 bg-base-200/50">
+          <div className="flex items-center gap-1.5 text-xs text-base-content/40">
+            <Zap className="w-3 h-3" />
+            <span>更改即时生效</span>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={handleClose}>
+            关闭
           </button>
         </div>
       </div>
@@ -383,7 +543,7 @@ function ProviderEditModal({ provider, onSave, onClose }: ProviderEditModalProps
               <button
                 key={key}
                 className={`
-                  flex-1 py-1.5 px-3 text-sm font-medium rounded-md transition-all
+                  flex-1 py-1.5 px-3 text-sm font-medium rounded-md transition-colors
                   ${protocol === key
                     ? "bg-base-100 text-base-content shadow-sm"
                     : "text-base-content/60 hover:text-base-content"

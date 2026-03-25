@@ -164,15 +164,23 @@ export function PromptPreviewModal({ prompt, isOpen, onClose }: PromptPreviewMod
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${
                 prompt.nodeTemplate.generatorType === "pro"
                   ? "bg-gradient-to-r from-purple-500/15 to-pink-500/15 text-purple-600 dark:text-purple-400"
-                  : "bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-400"
+                  : prompt.nodeTemplate.generatorType === "nb2"
+                    ? "bg-gradient-to-r from-cyan-500/15 to-blue-500/15 text-cyan-600 dark:text-cyan-400"
+                    : "bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-amber-600 dark:text-amber-400"
               }`}
             >
               {prompt.nodeTemplate.generatorType === "pro" ? (
                 <Sparkles className="w-3.5 h-3.5" />
+              ) : prompt.nodeTemplate.generatorType === "nb2" ? (
+                <Sparkles className="w-3.5 h-3.5" />
               ) : (
                 <Zap className="w-3.5 h-3.5" />
               )}
-              {prompt.nodeTemplate.generatorType === "pro" ? "Pro 模型" : "Fast 模型"}
+              {prompt.nodeTemplate.generatorType === "pro"
+                ? "NanoBanana Pro"
+                : prompt.nodeTemplate.generatorType === "nb2"
+                  ? "NanoBanana2"
+                  : "NanoBanana"}
             </div>
 
             {/* 是否需要图片输入 */}

@@ -52,5 +52,83 @@ export const photoEditingCategory: PromptCategory = {
       previewImage: "https://pbs.twimg.com/media/G6WypOCW4AANo7H.jpg?format=jpg&name=large",
       nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "1:1" },
     },
+    {
+      id: "extreme-wide-angle-phone-edit",
+      title: "超广角鱼眼+手机屏幕替换",
+      titleEn: "Extreme Wide Angle Phone Screen Replacement",
+      description: "超广角/鱼眼镜头编辑并替换手机屏幕内容",
+      prompt: `{
+  "edit_type": "extreme_wide_angle_phone_edit",
+  "source": {
+    "_hint": "Base for editing the person, clothing, and atmosphere of the original image. No new characters allowed.",
+    "mode": "EDIT",
+    "preserve_elements": ["Person", "Face", "Hairstyle", "Clothing", "Environment style"],
+    "change_rules": {
+      "camera_angle": "Ultra-wide or fisheye lens (equivalent to 12-18mm)",
+      "angle_options": [
+        "Looking up from directly in front",
+        "Looking down from directly in front",
+        "Extreme low angle",
+        "High angle",
+        "Tilted composition"
+      ],
+      "perspective_effect": "Nearby objects are exaggerated, distant objects become smaller",
+      "body_parts_close_to_camera": "Bring 1-3 body parts extremely close to the camera",
+      "body_part_options": [
+        "Hands",
+        "Feet/shoes",
+        "Knees/thighs",
+        "Face",
+        "Shoulders/chest"
+      ],
+      "pose_variety": [
+        "Extending one hand/leg toward the camera",
+        "Squatting or lying on stomach halfway",
+        "Sitting on the ground or an object",
+        "Lying on the ground with legs pointed at camera",
+        "Leaning body sharply toward the camera",
+        "Twisting body for dynamic pose"
+      ]
+    },
+    "phone_handling": {
+      "allowed": true,
+      "grip_options": [
+        "One-handed",
+        "Two-handed",
+        "Low angle",
+        "High angle",
+        "Tilted",
+        "Sideways",
+        "Close to chest",
+        "Close to waist",
+        "Casual grip"
+      ],
+      "screen_replacement": {
+        "target": "Only the smartphone screen portion displayed in the image",
+        "source": "Second reference image",
+        "fitting_rules": "Strictly match the screen shape, no stretching or compression",
+        "interface_rules": "No icons, status bars, or app borders; only display content from original image"
+      }
+    },
+    "environment_consistency": {
+      "location": "Maintain the same location as the original image",
+      "lighting": "Maintain direction and intensity",
+      "extension_rules": "Maintain the same buildings, walls, road markings, colors, materials, and lighting style"
+    },
+    "global_restrictions": [
+      "No new characters allowed",
+      "No changes to age or gender expression of person",
+      "No clothing changes",
+      "No changes to location type",
+      "No text, logos, or watermarks added to image",
+      "No illustration or anime style"
+    ]
+  }
+}`,
+      tags: ["鱼眼", "广角", "手机屏幕", "编辑"],
+      source: "@qisi_ai",
+      previewImage: "https://pbs.twimg.com/media/G7gEwj8bIAAcFM2?format=jpg&name=small",
+      nodeTemplate: { requiresImageInput: true, generatorType: "pro", aspectRatio: "3:4" },
+    },
   ],
 };

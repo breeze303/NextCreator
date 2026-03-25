@@ -285,7 +285,11 @@ export class DalleImageProvider implements ImageGenerationProvider {
       timestamp: new Date().toISOString(),
       model: request.model,
       provider: config.name,
-      requestUrl: `${config.baseUrl}/v1/images/generations`,
+      requestUrl:
+        request.editEndpoint === "chat" ||
+        (request.editEndpoint === "auto" && request.inputImages && request.inputImages.length > 0)
+          ? `${config.baseUrl}/v1/chat/completions`
+          : `${config.baseUrl}/v1/images/generations`,
     };
   }
 }

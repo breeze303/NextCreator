@@ -104,6 +104,14 @@ export interface PPTPageItem {
     manualThumbnail?: string;
     manualThumbnailPath?: string;
   };
+  // 重试前快照（用于撤销重试，恢复上一次的生成结果）
+  retrySnapshot?: {
+    result?: PPTPageItem["result"];
+    manualImage?: string;
+    manualImagePath?: string;
+    manualThumbnail?: string;
+    manualThumbnailPath?: string;
+  };
 }
 
 // 大纲配置 - 页数范围
