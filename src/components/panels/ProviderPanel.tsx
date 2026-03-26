@@ -78,7 +78,7 @@ const nodeGroups: NodeGroup[] = [
     nodeKeys: [
       "imageGeneratorPro", "imageGeneratorFast", "imageGeneratorNB2",
       "dalleGenerator", "fluxGenerator", "gptImageGenerator",
-      "doubaoGenerator", "zImageGenerator",
+      "doubaoGenerator", "zImageGenerator", "batchImageGenerator",
     ],
   },
   {

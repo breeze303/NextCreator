@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -55,6 +55,12 @@ export function SettingsPanel() {
     isOpen: isSettingsOpen,
     onClose: closeSettings,
   });
+
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    setLocalTheme(settings.theme);
+    setLocalBatchConcurrency(settings.batch?.concurrency ?? 3);
+  }, [isSettingsOpen, settings.theme, settings.batch?.concurrency]);
 
   // 获取动画类名
   const { backdropClasses, contentClasses } = getModalAnimationClasses(isVisible, isClosing);

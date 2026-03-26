@@ -8,6 +8,46 @@ let storeInstance: Awaited<ReturnType<typeof import("@tauri-apps/plugin-store").
 // Store 初始化 Promise，避免重复初始化
 let storeInitPromise: Promise<Awaited<ReturnType<typeof import("@tauri-apps/plugin-store").load>> | null> | null = null;
 
+function getBrowserStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+async function getFallbackItem(key: string): Promise<string | null> {
+  try {
+    const storage = getBrowserStorage();
+    if (!storage) return null;
+    return storage.getItem(key);
+  } catch (error) {
+    console.error("Fallback storage getItem error:", error);
+    return null;
+  }
+}
+
+async function setFallbackItem(key: string, value: string): Promise<void> {
+  try {
+    const storage = getBrowserStorage();
+    if (!storage) return;
+    storage.setItem(key, value);
+  } catch (error) {
+    console.error("Fallback storage setItem error:", error);
+  }
+}
+
+async function removeFallbackItem(key: string): Promise<void> {
+  try {
+    const storage = getBrowserStorage();
+    if (!storage) return;
+    storage.removeItem(key);
+  } catch (error) {
+    console.error("Fallback storage removeItem error:", error);
+  }
+}
+
 // 获取或创建 Store 实例
 async function getStore() {
   // 如果正在初始化中，等待完成
@@ -44,10 +84,10 @@ async function getItem(key: string): Promise<string | null> {
       const value = await store.get<string>(key);
       return value ?? null;
     }
-    return null;
+    return await getFallbackItem(key);
   } catch (error) {
     console.error("Storage getItem error:", error);
-    return null;
+    return await getFallbackItem(key);
   }
 }
 
@@ -88,9 +128,11 @@ async function flushSave() {
 }
 
 // 应用关闭前立即刷盘，防止防抖导致数据丢失
-window.addEventListener("beforeunload", () => {
-  flushSave();
-});
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    void flushSave();
+  });
+}
 
 // 设置数据
 async function setItem(key: string, value: string): Promise<void> {
@@ -100,9 +142,12 @@ async function setItem(key: string, value: string): Promise<void> {
       await store.set(key, value);
       // 防抖写入磁盘，500ms 内多次 set 只触发一次 save
       debouncedSave(store);
+      return;
     }
+    await setFallbackItem(key, value);
   } catch (error) {
     console.error("Storage setItem error:", error);
+    await setFallbackItem(key, value);
   }
 }
 
@@ -113,9 +158,12 @@ async function removeItem(key: string): Promise<void> {
     if (store) {
       await store.delete(key);
       await store.save();
+      return;
     }
+    await removeFallbackItem(key);
   } catch (error) {
     console.error("Storage removeItem error:", error);
+    await removeFallbackItem(key);
   }
 }
 
