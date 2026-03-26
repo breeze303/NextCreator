@@ -4,6 +4,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { Toolbar } from "@/components/Toolbar";
 import { FlowCanvas } from "@/components/FlowCanvas";
 import { Sidebar } from "@/components/Sidebar";
+import { TreeWorkspace } from "@/components/TreeWorkspace";
 import { SettingsPanel, KeyboardShortcutsPanel, BatchTaskPanel } from "@/components/panels";
 import { ProviderPanel } from "@/components/panels/ProviderPanel";
 import { StorageManagementModal } from "@/components/ui/StorageManagementModal";
@@ -15,6 +16,8 @@ import { initializeImageGenerationProviders } from "@/services/imageGeneration";
 import { initializeVideoGenerationProviders } from "@/services/videoGeneration";
 
 import "@/index.css";
+
+type WorkspaceMode = "workflow" | "tree";
 
 // 初始化图片生成提供商
 initializeImageGenerationProviders();
@@ -36,6 +39,7 @@ function App() {
 
   // 帮助面板状态
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("workflow");
 
   // 用于追踪是否正在切换画布，避免循环更新
   const isLoadingCanvasRef = useRef(false);
@@ -177,11 +181,13 @@ function App() {
 
         {/* 主体内容 */}
         <div className="flex flex-1 overflow-hidden">
-          {/* 左侧导航栏（包含画布列表和节点库） */}
-          <Sidebar onDragStart={onDragStart} />
+          <Sidebar
+            onDragStart={onDragStart}
+            workspaceMode={workspaceMode}
+            onWorkspaceModeChange={setWorkspaceMode}
+          />
 
-          {/* 右侧画布区域 */}
-          <FlowCanvas />
+          {workspaceMode === "workflow" ? <FlowCanvas /> : <TreeWorkspace />}
         </div>
 
         {/* 设置面板 */}

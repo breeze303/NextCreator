@@ -40,9 +40,15 @@ const navItems: { id: SidebarView; icon: React.ComponentType<{ className?: strin
 
 interface SidebarProps {
   onDragStart: (event: React.DragEvent, nodeType: string, defaultData: Record<string, unknown>) => void;
+  workspaceMode: "workflow" | "tree";
+  onWorkspaceModeChange: (mode: "workflow" | "tree") => void;
 }
 
-export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({
+  onDragStart,
+  workspaceMode,
+  onWorkspaceModeChange,
+}: SidebarProps) {
   // 细粒度 selector 订阅，避免不相关状态变化触发重渲染
   const canvases = useCanvasStore((s) => s.canvases);
   const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
@@ -287,6 +293,39 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
     <div className="flex h-full flex-shrink-0">
       {/* 最左侧图标导航栏 */}
       <div className="w-14 flex flex-col items-center py-3 bg-base-200 border-r border-base-300">
+        <div className="w-full flex flex-col items-center pb-3 mb-3 border-b border-base-300">
+          <button
+            className={`
+              w-10 h-10 flex items-center justify-center rounded-lg mb-2
+              transition-colors tooltip tooltip-right
+              ${workspaceMode === "workflow"
+                ? "bg-primary text-primary-content"
+                : "hover:bg-base-300 text-base-content/70 hover:text-base-content"
+              }
+            `}
+            data-tip="工作流"
+            onClick={() => onWorkspaceModeChange("workflow")}
+          >
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          <button
+            className={`
+              w-10 h-10 flex items-center justify-center rounded-lg
+              transition-colors tooltip tooltip-right
+              ${workspaceMode === "tree"
+                ? "bg-primary text-primary-content"
+                : "hover:bg-base-300 text-base-content/70 hover:text-base-content"
+              }
+            `}
+            data-tip="Tree"
+            onClick={() => onWorkspaceModeChange("tree")}
+          >
+            <span className="text-xs font-semibold tracking-wide">Tree</span>
+          </button>
+        </div>
+
+        {workspaceMode === "workflow" && (
+          <>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = sidebarView === item.id;
@@ -308,10 +347,28 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
             </button>
           );
         })}
+          </>
+        )}
       </div>
 
       {/* 右侧内容面板 - 固定宽度 */}
       <div className="w-56 flex flex-col bg-base-100 border-r border-base-300">
+        {workspaceMode === "tree" && (
+          <>
+            <div className="p-3 border-b border-base-300">
+              <h3 className="font-semibold text-sm">Tree 工作区</h3>
+              <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
+                当前处于 Tree 模式，主区域已切换为 TreeWorkspace 挂载点。
+              </p>
+            </div>
+            <div className="flex-1 p-3 text-xs text-base-content/50 leading-relaxed">
+              该区域在后续任务中会替换为完整的 Tree 工作区侧栏内容。
+            </div>
+          </>
+        )}
+
+        {workspaceMode === "workflow" && (
+          <>
         {/* 画布视图 */}
         {sidebarView === "canvases" && (
           <>
@@ -909,6 +966,8 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
                 拖拽提示词到画布中使用
               </p>
             </div>
+          </>
+        )}
           </>
         )}
       </div>
