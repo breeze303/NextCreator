@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   LayoutGrid,
   Blocks,
+  Images,
   Plus,
   MoreHorizontal,
   Trash2,
@@ -19,6 +20,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { useCanvasStore, type SidebarView } from "@/stores/canvasStore";
+import { useFlowStore } from "@/stores/flowStore";
 import { useUserPromptStore, type UserPrompt, type CreatePromptInput } from "@/stores/userPromptStore";
 import { useFavoritePromptStore } from "@/stores/favoritePromptStore";
 import { nodeCategories, nodeIconMap, nodeIconColors } from "@/config/nodeConfig";
@@ -26,11 +28,13 @@ import { promptCategories, promptIconMap, promptIconColors, type PromptItem } fr
 import { Input } from "@/components/ui/Input";
 import { PromptPreviewModal } from "@/components/ui/PromptPreviewModal";
 import { PromptEditModal } from "@/components/ui/PromptEditModal";
+import type { CustomNodeData } from "@/types";
 
 // 导航项定义
 const navItems: { id: SidebarView; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
   { id: "canvases", icon: LayoutGrid, label: "画布" },
   { id: "nodes", icon: Blocks, label: "节点" },
+  { id: "batch", icon: Images, label: "批量出图" },
   { id: "prompts", icon: BookText, label: "提示词" },
 ];
 
@@ -49,6 +53,7 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
   const renameCanvas = useCanvasStore((s) => s.renameCanvas);
   const switchCanvas = useCanvasStore((s) => s.switchCanvas);
   const duplicateCanvas = useCanvasStore((s) => s.duplicateCanvas);
+  const addNode = useFlowStore((s) => s.addNode);
 
   // 画布相关状态
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -251,6 +256,31 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
 
   // 获取当前打开菜单的画布
   const menuCanvas = menuOpenId ? canvases.find((c) => c.id === menuOpenId) : null;
+
+  const batchImageNodeConfig = useMemo(
+    () => nodeCategories
+      .flatMap((category) => category.nodes)
+      .find((node) => node.type === "batchImageGeneratorNode"),
+    []
+  );
+
+  const handleQuickAddBatchNode = useCallback(() => {
+    if (!activeCanvasId || !batchImageNodeConfig) {
+      return;
+    }
+
+    const activeCanvas = canvases.find((canvas) => canvas.id === activeCanvasId);
+    const nodeCount = activeCanvas?.nodes.length ?? 0;
+
+    addNode(
+      batchImageNodeConfig.type,
+      {
+        x: 200 + (nodeCount % 4) * 40,
+        y: 120 + (nodeCount % 4) * 40,
+      },
+      batchImageNodeConfig.defaultData as CustomNodeData
+    );
+  }, [activeCanvasId, addNode, batchImageNodeConfig, canvases]);
 
   return (
     <>
@@ -475,6 +505,52 @@ export const Sidebar = memo(function Sidebar({ onDragStart }: SidebarProps) {
             <div className="p-3 border-t border-base-300">
               <p className="text-xs text-base-content/40 text-center">
                 拖拽节点到画布中使用
+              </p>
+            </div>
+          </>
+        )}
+
+        {sidebarView === "batch" && (
+          <>
+            <div className="p-3 border-b border-base-300">
+              <h3 className="font-semibold text-sm">批量出图</h3>
+              <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
+                快速在当前画布添加批量出图节点，无需在节点库中搜索。
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3">
+              <div className="rounded-xl border border-base-300 bg-base-200/40 p-3">
+                <div className="flex items-start gap-2">
+                  <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 flex-shrink-0">
+                    <Images className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">批量出图节点</div>
+                    <p className="text-xs text-base-content/60 mt-1 leading-relaxed">
+                      点击后会在当前激活画布创建一个“批量出图”节点。
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  className="btn btn-primary btn-sm w-full mt-3"
+                  onClick={handleQuickAddBatchNode}
+                  disabled={!activeCanvasId || !batchImageNodeConfig}
+                >
+                  <Plus className="w-4 h-4" />
+                  快速添加批量节点
+                </button>
+
+                {!activeCanvasId && (
+                  <p className="text-xs text-warning mt-2">请先创建或切换到一个画布</p>
+                )}
+              </div>
+            </div>
+
+            <div className="p-3 border-t border-base-300">
+              <p className="text-xs text-base-content/40 text-center">
+                也可在「节点」视图中拖拽“批量出图”到画布
               </p>
             </div>
           </>

@@ -45,8 +45,6 @@ function clamp(n: number, min: number, max: number): number {
 function BatchImageGeneratorBase({ id, data, selected }: NodeProps<BatchImageGeneratorNode>) {
   const { updateNodeData } = useFlowStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
-  const isStoppingRef = useRef(false);
 
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const [showErrorDetail, setShowErrorDetail] = useState<{
@@ -154,25 +152,24 @@ function BatchImageGeneratorBase({ id, data, selected }: NodeProps<BatchImageGen
     });
   }, [status, updateNode]);
 
-  const handleStop = useCallback(() => {
-    isStoppingRef.current = true;
-    for (const [, ctrl] of abortControllersRef.current.entries()) {
-      ctrl.abort();
-    }
-    abortControllersRef.current.clear();
-
-    const next = items.map((it) => {
-      if (it.status === "pending" || it.status === "queued") {
-        return { ...it, status: "cancelled" as const, completedAt: Date.now() };
-      }
-      return it;
+  const handleRemoveItem = useCallback((itemId: string) => {
+    if (status === "loading") return;
+    updateNode({
+      items: items.filter((it) => it.id !== itemId),
     });
-    updateNode({ items: next, status: "cancelled" });
-  }, [items, updateNode]);
+    setPreviewItemId((prev) => (prev === itemId ? null : prev));
+  }, [items, status, updateNode]);
+
+  const handleStop = useCallback(() => {
+    const groupId = data.groupId?.trim();
+    if (!groupId) {
+      return;
+    }
+    batchTaskManager.stopGroup(groupId);
+  }, [data.groupId]);
 
   const handleRun = useCallback(async () => {
     if (status === "loading") return;
-    isStoppingRef.current = false;
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
@@ -401,6 +398,18 @@ function BatchImageGeneratorBase({ id, data, selected }: NodeProps<BatchImageGen
                             错误
                           </button>
                         ) : null}
+                        <button
+                          className="btn btn-ghost btn-xs text-base-content/70"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveItem(it.id);
+                          }}
+                          disabled={status === "loading"}
+                          title="移除"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   );

@@ -7,16 +7,37 @@ import { batchTaskManager } from "@/services/batchTaskManager";
 import type { BatchImageItem, BatchImageTaskGroup } from "@/types";
 
 export function BatchTaskPanel() {
-  const { isOpen, close, groups, clearCompleted } = useBatchTaskStore();
+  const isOpen = useBatchTaskStore((state) => state.isOpen);
+  const close = useBatchTaskStore((state) => state.close);
+  const clearCompleted = useBatchTaskStore((state) => state.clearCompleted);
+  const groups = useBatchTaskStore((state) => state.groups);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
-  const sortedGroups = useMemo<BatchImageTaskGroup[]>(() => groups, [groups]);
+  const groupIds = useMemo(() => groups.map((g) => g.id), [groups]);
+
+  const sortedGroups = useMemo<BatchImageTaskGroup[]>(
+    () =>
+      groupIds
+        .map((groupId) => batchTaskManager.getGroup(groupId))
+        .filter((group): group is BatchImageTaskGroup => Boolean(group)),
+    [groupIds]
+  );
 
   const { isVisible, isClosing, handleClose, handleBackdropClick } = useModal({
     isOpen,
     onClose: close,
   });
   const { backdropClasses, contentClasses } = getModalAnimationClasses(isVisible, isClosing);
+
+  const getItemErrorMessage = (item: BatchImageItem): string | null => {
+    const error = item.result?.error?.trim();
+    if (error) return error;
+
+    const detailsMessage = item.result?.errorDetails?.message?.trim();
+    if (detailsMessage) return detailsMessage;
+
+    return null;
+  };
 
   if (!isOpen) return null;
 
@@ -42,10 +63,16 @@ export function BatchTaskPanel() {
           ) : (
             sortedGroups.map((g: BatchImageTaskGroup) => {
               const isExpanded = expanded.has(g.id);
-              const total = g.items.length;
-              const completed = g.items.filter((i: BatchImageItem) => i.status === "success").length;
-              const failed = g.items.filter((i: BatchImageItem) => i.status === "error").length;
-              const running = g.items.filter((i: BatchImageItem) => i.status === "running").length;
+              const groupItems = batchTaskManager.getItems(g.id);
+              const total = groupItems.length;
+              const completed = groupItems.filter((i: BatchImageItem) => i.status === "success").length;
+              const failed = groupItems.filter((i: BatchImageItem) => i.status === "error").length;
+              const running = groupItems.filter((i: BatchImageItem) => i.status === "running").length;
+              const latestGroupError = groupItems.reduceRight<string | null>((acc, item) => {
+                if (acc) return acc;
+                if (item.status !== "error") return acc;
+                return getItemErrorMessage(item);
+              }, null);
               return (
                 <div key={g.id} className="border border-base-300 rounded-xl p-3">
                   <div className="flex items-center justify-between gap-3">
@@ -67,6 +94,11 @@ export function BatchTaskPanel() {
                       <div className="text-xs text-base-content/50 mt-1">
                         {completed}/{total} 完成 · {failed} 失败 · {running} 运行中 · 并发 {g.concurrency}
                       </div>
+                      {failed > 0 && (
+                        <div className="text-xs text-error/80 mt-1 truncate" title={latestGroupError ?? "该组存在失败项，请展开查看具体错误"}>
+                          最近错误：{latestGroupError ?? "该组存在失败项，请展开查看具体错误"}
+                        </div>
+                      )}
                     </div>
                     <button
                       className="btn btn-ghost btn-sm"
@@ -79,7 +111,8 @@ export function BatchTaskPanel() {
 
                   {isExpanded && (
                     <div className="mt-3 border-t border-base-300 pt-2 space-y-1">
-                      {g.items.map((it: BatchImageItem) => {
+                      {groupItems.map((it: BatchImageItem) => {
+                        const errorMessage = it.status === "error" ? getItemErrorMessage(it) : null;
                         const icon =
                           it.status === "running" ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -90,14 +123,21 @@ export function BatchTaskPanel() {
                           ) : null;
                         const name = it.fileName || it.id.slice(0, 8);
                         return (
-                          <div key={it.id} className="flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-4 h-4 flex items-center justify-center">{icon}</div>
-                              <span className="truncate">{name}</span>
-                              <span className="text-base-content/40">{it.status}</span>
+                          <div key={it.id} className="flex items-start justify-between gap-2 text-xs">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-4 h-4 flex items-center justify-center">{icon}</div>
+                                <span className="truncate">{name}</span>
+                                <span className="text-base-content/40">{it.status}</span>
+                              </div>
+                              {it.status === "error" && (
+                                <div className="pl-6 mt-1 text-error/90 truncate" title={errorMessage ?? "任务失败，未返回详细错误"}>
+                                  错误：{errorMessage ?? "任务失败，未返回详细错误"}
+                                </div>
+                              )}
                             </div>
                             <button
-                              className="btn btn-ghost btn-xs"
+                              className="btn btn-ghost btn-xs shrink-0"
                               disabled={!(it.status === "running" || it.status === "queued" || it.status === "pending")}
                               onClick={() => batchTaskManager.stopItem(g.id, it.id)}
                             >
