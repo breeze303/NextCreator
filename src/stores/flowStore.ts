@@ -12,7 +12,7 @@ import {
   type IsValidConnection,
 } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
-import type { CustomNode, CustomEdge, CustomNodeData } from "@/types";
+import type { BatchImageNodeData, CustomNode, CustomEdge, CustomNodeData } from "@/types";
 import type { WorkflowExecutionContext } from "@/types/workflow";
 import type { PromptNodeTemplate } from "@/config/promptConfig";
 import { validateConnection } from "@/utils/connectionValidator";
@@ -58,6 +58,36 @@ interface HistoryState {
 function createLightweightSnapshot(nodes: CustomNode[], edges: CustomEdge[]): HistoryState {
   const lightNodes = nodes.map(node => {
     const { data } = node;
+
+    if (node.type === "batchImageGeneratorNode") {
+      const batchData = data as BatchImageNodeData;
+      const cleanedItems = batchData.items.map((item) => {
+        const next = { ...item };
+
+        if (next.sourceImagePath && next.sourceImageData) {
+          next.sourceImageData = undefined;
+        }
+
+        if (next.result?.imagePath && next.result.imageData) {
+          next.result = {
+            ...next.result,
+            imageData: undefined,
+          };
+        }
+
+        return next;
+      });
+
+      return {
+        ...node,
+        data: {
+          ...batchData,
+          latestOutputImage: batchData.latestOutputImagePath ? undefined : batchData.latestOutputImage,
+          items: cleanedItems,
+        },
+      };
+    }
+
     // 检查是否有需要清除的大体积字段
     const hasHeavyData = 'imageData' in data || 'outputImage' in data
       || 'maskImageData' in data || 'fileData' in data;

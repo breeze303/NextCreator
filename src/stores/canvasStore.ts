@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
-import type { CustomNode, CustomEdge, ImageGeneratorNodeData, ImageInputNodeData } from "@/types";
+import type { BatchImageNodeData, CustomNode, CustomEdge, ImageGeneratorNodeData, ImageInputNodeData } from "@/types";
 import { tauriStorage } from "@/utils/tauriStorage";
 
 // 画布数据结构
@@ -15,7 +15,7 @@ export interface CanvasData {
 }
 
 // 侧边栏视图类型
-export type SidebarView = "canvases" | "nodes" | "prompts";
+export type SidebarView = "canvases" | "nodes" | "prompts" | "batch";
 
 interface CanvasStore {
   // 画布列表
@@ -179,6 +179,17 @@ export const useCanvasStore = create<CanvasStore>()(
             ) {
               return true;
             }
+            if (node.type === "batchImageGeneratorNode") {
+              const data = node.data as BatchImageNodeData;
+              if (data.latestOutputImagePath && data.latestOutputImage) {
+                return true;
+              }
+
+              return data.items.some((item) =>
+                (item.sourceImagePath && item.sourceImageData) ||
+                (item.result?.imagePath && item.result.imageData)
+              );
+            }
             return false;
           });
 
@@ -207,6 +218,34 @@ export const useCanvasStore = create<CanvasStore>()(
                 return {
                   ...node,
                   data: { ...node.data, imageData: undefined },
+                };
+              }
+              if (node.type === "batchImageGeneratorNode") {
+                const data = node.data as BatchImageNodeData;
+                const cleanedItems = data.items.map((item) => {
+                  const next = { ...item };
+
+                  if (next.sourceImagePath && next.sourceImageData) {
+                    next.sourceImageData = undefined;
+                  }
+
+                  if (next.result?.imagePath && next.result.imageData) {
+                    next.result = {
+                      ...next.result,
+                      imageData: undefined,
+                    };
+                  }
+
+                  return next;
+                });
+
+                return {
+                  ...node,
+                  data: {
+                    ...data,
+                    latestOutputImage: data.latestOutputImagePath ? undefined : data.latestOutputImage,
+                    items: cleanedItems,
+                  },
                 };
               }
               return node;
