@@ -17,6 +17,10 @@ export interface LLMGenerationParams {
   responseJsonSchema?: Record<string, unknown>; // 结构化输出的 JSON Schema
 }
 
+interface LLMGenerationOptions {
+  providerOverride?: Provider;
+}
+
 // LLM 响应
 export interface LLMResponse {
   content?: string;
@@ -216,8 +220,21 @@ export async function generateText(params: LLMGenerationParams): Promise<LLMResp
 
 // LLM 内容生成（LLM 内容生成节点使用）
 export async function generateLLMContent(params: LLMGenerationParams): Promise<LLMResponse> {
+  return generateLLMContentWithOptions(params);
+}
+
+export async function generateLLMContentWithOptions(
+  params: LLMGenerationParams,
+  options?: LLMGenerationOptions
+): Promise<LLMResponse> {
   try {
-    const provider = getProviderConfig("llmContent");
+    const provider = options?.providerOverride
+      ? { ...options.providerOverride, ...resolveProviderRuntime(options.providerOverride) }
+      : getProviderConfig("llmContent");
+
+    if (!provider.apiKey) {
+      throw new Error("供应商 API Key 未配置");
+    }
 
     const baseUrl = provider.baseUrl.replace(/\/+$/, "");
     const requestParams: TauriLLMParams = {
