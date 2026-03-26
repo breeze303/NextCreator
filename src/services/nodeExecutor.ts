@@ -20,6 +20,11 @@ import { generateImage, editImage } from "@/services/imageService";
 import { generateLLMContent } from "@/services/llmService";
 import { createVideoTask, pollVideoTask } from "@/services/videoGeneration";
 import { saveImage, readImage } from "@/services/fileStorageService";
+import { batchTaskManager } from "@/services/batchTaskManager";
+
+const BATCH_POLL_INTERVAL_MS = 500;
+const BATCH_POLL_MAX_WAIT_MS = 30 * 60 * 1000;
+const BATCH_POLL_MIN_WAIT_MS = 2 * 60 * 1000;
 
 // 自定义节点类型
 type CustomNode = Node<CustomNodeData>;
@@ -36,21 +41,20 @@ async function getConnectedInputDataFromCanvas(
   images: string[];
   files: Array<{ data: string; mimeType: string; fileName?: string }>;
 }> {
-  const { activeCanvasId } = useCanvasStore.getState();
+  const { activeCanvasId, canvases } = useCanvasStore.getState();
+  const flowState = useFlowStore.getState();
 
-  // 如果是当前活跃画布，使用 flowStore 的异步版本
-  if (canvasId === activeCanvasId) {
-    return useFlowStore.getState().getConnectedInputDataAsync(nodeId);
-  }
+  const nodes = (canvasId === activeCanvasId
+    ? flowState.nodes
+    : canvases.find((c) => c.id === canvasId)?.nodes) as CustomNode[] | undefined;
+  const edges = (canvasId === activeCanvasId
+    ? flowState.edges
+    : canvases.find((c) => c.id === canvasId)?.edges) as Edge[] | undefined;
 
-  // 否则从 canvasStore 读取目标画布的数据
-  const canvas = useCanvasStore.getState().canvases.find((c) => c.id === canvasId);
-  if (!canvas) {
+  if (!nodes || !edges) {
     return { images: [], files: [] };
   }
 
-  const nodes = canvas.nodes as CustomNode[];
-  const edges = canvas.edges as Edge[];
   const incomingEdges = edges.filter((edge) => edge.target === nodeId);
 
   // 支持多个 prompt 输入，收集后拼接
@@ -100,6 +104,18 @@ async function getConnectedInputDataFromCanvas(
           }
         } else {
           imageData = data.outputImage;
+        }
+      } else if (sourceNode.type === "batchImageGeneratorNode") {
+        const data = sourceNode.data as { latestOutputImage?: string; latestOutputImagePath?: string };
+        if (data.latestOutputImagePath) {
+          try {
+            imageData = await readImage(data.latestOutputImagePath);
+          } catch (err) {
+            console.warn("从文件加载批量输出图片失败:", err);
+            imageData = data.latestOutputImage;
+          }
+        } else {
+          imageData = data.latestOutputImage;
         }
       }
       if (imageData) {
@@ -152,6 +168,20 @@ async function getConnectedInputDataFromCanvas(
           imageData = data.outputImage;
         }
         if (imageData) images.push(imageData);
+      } else if (sourceNode.type === "batchImageGeneratorNode") {
+        const data = sourceNode.data as { latestOutputImage?: string; latestOutputImagePath?: string };
+        let imageData: string | undefined;
+        if (data.latestOutputImagePath) {
+          try {
+            imageData = await readImage(data.latestOutputImagePath);
+          } catch (err) {
+            console.warn("从文件加载批量输出图片失败:", err);
+            imageData = data.latestOutputImage;
+          }
+        } else {
+          imageData = data.latestOutputImage;
+        }
+        if (imageData) images.push(imageData);
       } else if (sourceNode.type === "fileUploadNode") {
         const data = sourceNode.data as { fileData?: string; mimeType?: string; fileName?: string };
         if (data.fileData && data.mimeType) {
@@ -164,6 +194,125 @@ async function getConnectedInputDataFromCanvas(
   // 将多个 prompt 拼接成一个字符串，用换行符分隔
   const prompt = prompts.length > 0 ? prompts.join("\n\n") : undefined;
   return { prompt, images, files };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function pickLatestBatchOutput(items: BatchImageNodeData["items"]): {
+  latestOutputImage?: string;
+  latestOutputImagePath?: string;
+} {
+  let latestTs = -1;
+  let latestPath: string | undefined;
+  let latestData: string | undefined;
+
+  for (const item of items) {
+    if (item.status !== "success" || !item.result) continue;
+    const ts = item.result.completedAt ?? item.completedAt ?? 0;
+    if (ts < latestTs) continue;
+    if (!item.result.imagePath && !item.result.imageData) continue;
+
+    latestTs = ts;
+    latestPath = item.result.imagePath;
+    latestData = item.result.imageData;
+  }
+
+  if (latestPath) {
+    return {
+      latestOutputImagePath: latestPath,
+      latestOutputImage: undefined,
+    };
+  }
+
+  return {
+    latestOutputImagePath: undefined,
+    latestOutputImage: latestData,
+  };
+}
+
+async function waitForBatchTerminal(params: {
+  groupId: string;
+  itemCount: number;
+  signal?: AbortSignal;
+}): Promise<
+  | {
+      success: true;
+      output: {
+        groupId: string;
+        totalCount: number;
+        completedCount: number;
+        failedCount: number;
+        cancelledCount: number;
+        items: BatchImageNodeData["items"];
+        latestOutputImage?: string;
+        latestOutputImagePath?: string;
+      };
+    }
+  | { success: false; error: string }
+> {
+  const maxWaitMs = Math.min(
+    BATCH_POLL_MAX_WAIT_MS,
+    Math.max(BATCH_POLL_MIN_WAIT_MS, params.itemCount * 120_000)
+  );
+  const startAt = Date.now();
+
+  while (Date.now() - startAt <= maxWaitMs) {
+    if (params.signal?.aborted) {
+      batchTaskManager.stopGroup(params.groupId);
+      return { success: false, error: "已取消" };
+    }
+
+    const group = batchTaskManager.getGroup(params.groupId);
+    if (!group) {
+      return { success: false, error: "批量任务不存在或已被移除" };
+    }
+
+    const items = group.items;
+    const completedCount = items.filter((item) => item.status === "success").length;
+    const failedCount = items.filter((item) => item.status === "error").length;
+    const cancelledCount = items.filter((item) => item.status === "cancelled").length;
+    const hasRunning = items.some(
+      (item) => item.status === "pending" || item.status === "queued" || item.status === "running"
+    );
+    const isGroupTerminal = group.status === "completed" || group.status === "cancelled";
+
+    if (isGroupTerminal || !hasRunning) {
+      if (group.status === "cancelled") {
+        return { success: false, error: "批量任务已取消" };
+      }
+
+      if (completedCount === 0) {
+        const firstError = items.find((item) => item.result?.error)?.result?.error;
+        return {
+          success: false,
+          error: firstError || (failedCount > 0 ? "批量出图全部失败" : "批量任务未产出有效结果"),
+        };
+      }
+
+      const latestOutput = pickLatestBatchOutput(items);
+      return {
+        success: true,
+        output: {
+          groupId: group.id,
+          totalCount: items.length,
+          completedCount,
+          failedCount,
+          cancelledCount,
+          items,
+          ...latestOutput,
+        },
+      };
+    }
+
+    await sleep(BATCH_POLL_INTERVAL_MS);
+  }
+
+  batchTaskManager.stopGroup(params.groupId);
+  return { success: false, error: `批量任务等待超时（>${Math.floor(maxWaitMs / 1000)}秒）` };
 }
 
 /**
@@ -590,15 +739,78 @@ async function executePPTContentNode(
 
 async function executeBatchImageGeneratorNode(
   node: CustomNode,
-  canvasId: string
+  canvasId: string,
+  signal?: AbortSignal
 ): Promise<NodeExecutionResult> {
   const data = node.data as BatchImageNodeData;
-  const errorMsg = "批量出图节点暂不支持自动工作流执行，请手动点击开始";
+
+  const { prompt: connectedPrompt } = await getConnectedInputDataFromCanvas(node.id, canvasId);
+  const trimmedConnectedPrompt = (connectedPrompt || "").trim();
+  const trimmedLocalPrompt = (data.prompt || "").trim();
+  const resolvedPrompt = trimmedConnectedPrompt || trimmedLocalPrompt;
+
+  if (!resolvedPrompt) {
+    const errorMsg = "请输入提示词";
+    updateNodeDataWithCanvas<BatchImageNodeData>(node.id, canvasId, {
+      status: "error",
+      error: errorMsg,
+    });
+    return { success: false, error: errorMsg };
+  }
+
+  if (!data.items?.length) {
+    const errorMsg = "请先导入图片";
+    updateNodeDataWithCanvas<BatchImageNodeData>(node.id, canvasId, {
+      status: "error",
+      error: errorMsg,
+    });
+    return { success: false, error: errorMsg };
+  }
+
+  if (signal?.aborted) {
+    return { success: false, error: "已取消" };
+  }
+
+  const groupId = globalThis.crypto.randomUUID();
   updateNodeDataWithCanvas<BatchImageNodeData>(node.id, canvasId, {
-    status: "error",
-    error: data.items?.length ? errorMsg : "请先导入图片",
+    groupId,
+    status: "loading",
+    error: undefined,
+    errorDetails: undefined,
   });
-  return { success: false, error: errorMsg };
+
+  batchTaskManager.startGroup({
+    groupId,
+    nodeId: node.id,
+    canvasId,
+    model: data.model,
+    prompt: resolvedPrompt,
+    items: data.items,
+    aspectRatio: data.aspectRatio,
+    imageSize: data.imageSize,
+    negativePrompt: data.negativePrompt,
+  });
+
+  const terminal = await waitForBatchTerminal({
+    groupId,
+    itemCount: data.items.length,
+    signal,
+  });
+
+  if (!terminal.success) {
+    if (terminal.error !== "已取消") {
+      updateNodeDataWithCanvas<BatchImageNodeData>(node.id, canvasId, {
+        status: "error",
+        error: terminal.error,
+      });
+    }
+    return { success: false, error: terminal.error };
+  }
+
+  return {
+    success: true,
+    output: terminal.output,
+  };
 }
 
 /**
@@ -636,7 +848,7 @@ export class NodeExecutor {
         return executePPTContentNode(node, canvasId, signal);
 
       case "batchImageGeneratorNode":
-        return executeBatchImageGeneratorNode(node, canvasId);
+        return executeBatchImageGeneratorNode(node, canvasId, signal);
 
       default:
         // 未知节点类型，跳过
