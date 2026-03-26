@@ -3,6 +3,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { Bot, FolderOpen, GitBranch, Pencil, Plus, Settings2, Sparkles, Trash2, X } from "lucide-react";
 
 import { TreeChatFlow } from "@/components/tree/TreeChatFlow";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { useTreeModelStore } from "@/stores/treeModelStore";
 import { useTreeSessionStore } from "@/stores/treeSessionStore";
 import type { TreeModel, TreeSession } from "@/types/tree";
@@ -62,6 +63,7 @@ function createModelDraft(): TreeModel {
   return {
     id: crypto.randomUUID(),
     name: "新模型",
+    providerId: undefined,
     baseUrl: "https://api.openai.com/v1",
     apiKey: "",
     modelName: "gpt-4o-mini",
@@ -86,6 +88,8 @@ function formatSessionTime(iso: string) {
 }
 
 export function TreeWorkspace() {
+  const hostProviders = useSettingsStore((state) => state.settings.providers);
+  const hostDefaultProviderId = useSettingsStore((state) => state.settings.nodeProviders.llmContent);
   const sessions = useTreeSessionStore((state) => state.sessions);
   const currentSessionId = useTreeSessionStore((state) => state.currentSessionId);
   const setCurrentSessionId = useTreeSessionStore((state) => state.setCurrentSessionId);
@@ -197,7 +201,10 @@ export function TreeWorkspace() {
     if (!hasHydratedModels) {
       return;
     }
-    setEditingModel(createModelDraft());
+    setEditingModel({
+      ...createModelDraft(),
+      providerId: hostDefaultProviderId ?? hostProviders[0]?.id,
+    });
   };
 
   const handleSaveModel = (event?: React.FormEvent) => {
@@ -500,8 +507,8 @@ export function TreeWorkspace() {
                                   value={editingModel.name}
                                 />
                             </label>
-                            <label className="form-control">
-                              <span className="label-text text-xs">模型标识</span>
+                          <label className="form-control">
+                            <span className="label-text text-xs">模型标识</span>
                                 <input
                                   className="input input-bordered input-sm"
                                   onChange={(event) =>
@@ -509,32 +516,29 @@ export function TreeWorkspace() {
                                   }
                                   type="text"
                                   value={editingModel.modelName}
-                                />
+                              />
                             </label>
                           </div>
 
                           <label className="form-control">
-                            <span className="label-text text-xs">API 地址</span>
-                            <input
-                              className="input input-bordered input-sm"
+                            <span className="label-text text-xs">运行时供应商</span>
+                            <select
+                              className="select select-bordered select-sm"
                               onChange={(event) =>
-                                setEditingModel((prev) => (prev ? { ...prev, baseUrl: event.target.value } : prev))
+                                setEditingModel((prev) => (prev ? { ...prev, providerId: event.target.value || undefined } : prev))
                               }
-                              type="text"
-                              value={editingModel.baseUrl}
-                            />
-                          </label>
-
-                          <label className="form-control">
-                            <span className="label-text text-xs">API 密钥</span>
-                            <input
-                              className="input input-bordered input-sm"
-                              onChange={(event) =>
-                                setEditingModel((prev) => (prev ? { ...prev, apiKey: event.target.value } : prev))
-                              }
-                              type="password"
-                              value={editingModel.apiKey}
-                            />
+                              value={editingModel.providerId ?? ""}
+                            >
+                              <option value="">使用全局 LLM 内容生成映射</option>
+                              {hostProviders.map((provider) => (
+                                <option key={provider.id} value={provider.id}>
+                                  {provider.name}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="label-text-alt text-[11px] text-base-content/60">
+                              Tree 运行时将优先使用这里绑定的供应商；未设置时回退到宿主的“LLM 内容生成”默认映射。
+                            </span>
                           </label>
 
                           <label className="form-control">

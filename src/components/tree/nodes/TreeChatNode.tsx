@@ -1,5 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { MessageSquare, Plus, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { TreeFlowNodeData } from "@/components/tree/types";
@@ -36,6 +36,15 @@ export function TreeChatNode({ data }: NodeProps<TreeChatFlowNode>) {
           对话节点
         </div>
         <div className="flex items-center gap-1">
+          <button
+            className="btn btn-ghost btn-xs text-primary nodrag nopan"
+            data-testid={`tree-run-node-${data.node.id}`}
+            disabled={Boolean(data.node.isStreaming)}
+            onClick={() => data.onRunNode?.(data.node.id)}
+            type="button"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </button>
           <button
             className="btn btn-ghost btn-xs nodrag nopan"
             data-testid={`tree-add-child-${data.node.id}`}
@@ -86,6 +95,7 @@ export function TreeChatNode({ data }: NodeProps<TreeChatFlowNode>) {
             }}
             value={assistantMessage}
           />
+          {data.node.error ? <p className="mt-2 text-xs text-error">{data.node.error}</p> : null}
         </div>
       </div>
 

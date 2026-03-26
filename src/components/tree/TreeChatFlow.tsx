@@ -5,6 +5,7 @@ import { TreeChatNode } from "@/components/tree/nodes/TreeChatNode";
 import { TreeSystemNode } from "@/components/tree/nodes/TreeSystemNode";
 import type { TreeFlowNodeData } from "@/components/tree/types";
 import { generateTreeChat, resolveTreeModelRuntime, TreeRuntimeAdapterError } from "@/services/tree/treeRuntimeAdapter";
+import { useTreeModelStore } from "@/stores/treeModelStore";
 import { useTreeSessionStore } from "@/stores/treeSessionStore";
 import type { TreeSession } from "@/types/tree";
 import type { TreeModel } from "@/types/tree";
@@ -70,10 +71,59 @@ export function TreeChatFlow({ session, runtimeModel }: TreeChatFlowProps) {
   const addNodeToSession = useTreeSessionStore((state) => state.addNodeToSession);
   const updateNodeInSession = useTreeSessionStore((state) => state.updateNodeInSession);
   const deleteNodeFromSession = useTreeSessionStore((state) => state.deleteNodeFromSession);
+  const models = useTreeModelStore((state) => state.models);
+  const defaultModelId = useTreeModelStore((state) => state.defaultModelId);
 
   const [runtimeOutput, setRuntimeOutput] = useState<string>("");
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+
+  const nodeMap = useMemo(() => new Map(session.nodes.map((node) => [node.id, node])), [session.nodes]);
+
+  const resolveModelForNode = useCallback(
+    (modelId?: string) => {
+      return models.find((model) => model.id === modelId)
+        ?? models.find((model) => model.id === defaultModelId)
+        ?? runtimeModel;
+    },
+    [defaultModelId, models, runtimeModel]
+  );
+
+  const buildMessagesForNode = useCallback(
+    (nodeId: string) => {
+      const chain: TreeSession["nodes"] = [];
+      let cursor = nodeMap.get(nodeId);
+      let guard = 0;
+
+      while (cursor && guard < 256) {
+        chain.unshift(cursor);
+        cursor = cursor.parentId ? nodeMap.get(cursor.parentId) : undefined;
+        guard += 1;
+      }
+
+      const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
+      chain.forEach((node, index) => {
+        if (node.type === "system") {
+          if (node.userMessage.trim()) {
+            messages.push({ role: "system", content: node.userMessage });
+          }
+          return;
+        }
+
+        if (node.userMessage.trim()) {
+          messages.push({ role: "user", content: node.userMessage });
+        }
+
+        const isTarget = index === chain.length - 1;
+        if (!isTarget && node.assistantMessage.trim()) {
+          messages.push({ role: "assistant", content: node.assistantMessage });
+        }
+      });
+
+      return messages;
+    },
+    [nodeMap]
+  );
 
   const fallbackLayout = useMemo(() => buildFallbackLayout(session), [session]);
   const handleEditNode = useCallback(
@@ -151,6 +201,63 @@ export function TreeChatFlow({ session, runtimeModel }: TreeChatFlowProps) {
     [session, updateNodeInSession]
   );
 
+  const handleRunNode = useCallback(
+    async (nodeId: string) => {
+      const targetNode = session.nodes.find((node) => node.id === nodeId);
+      if (!targetNode || targetNode.type !== "chat") {
+        return;
+      }
+
+      const runtime = resolveModelForNode(targetNode.modelId);
+      const messages = buildMessagesForNode(nodeId);
+
+      if (!messages.some((message) => message.role === "user" && message.content.trim())) {
+        updateNodeInSession(session.id, {
+          ...targetNode,
+          error: "请先输入用户消息。",
+        });
+        return;
+      }
+
+      setIsRunning(true);
+      setRuntimeError(null);
+      setRuntimeOutput("");
+      updateNodeInSession(session.id, {
+        ...targetNode,
+        isStreaming: true,
+        error: undefined,
+      });
+
+      try {
+        const content = await generateTreeChat({
+          treeModel: runtime,
+          messages,
+          temperature: targetNode.temperature,
+          maxTokens: targetNode.maxTokens,
+        });
+
+        updateNodeInSession(session.id, {
+          ...targetNode,
+          assistantMessage: content || targetNode.assistantMessage,
+          isStreaming: false,
+          error: undefined,
+        });
+        setRuntimeOutput(content || "请求完成，但未返回文本内容。");
+      } catch (error) {
+        const message = error instanceof TreeRuntimeAdapterError ? error.message : error instanceof Error ? error.message : "未知错误";
+        updateNodeInSession(session.id, {
+          ...targetNode,
+          isStreaming: false,
+          error: message,
+        });
+        setRuntimeError(message);
+      } finally {
+        setIsRunning(false);
+      }
+    },
+    [buildMessagesForNode, resolveModelForNode, session, updateNodeInSession]
+  );
+
   const flowNodes = useMemo<TreeFlowNode[]>(
     () =>
       session.nodes.map((node) => ({
@@ -164,13 +271,16 @@ export function TreeChatFlow({ session, runtimeModel }: TreeChatFlowProps) {
             type: node.type,
             userMessage: node.userMessage,
             assistantMessage: node.assistantMessage,
+            error: node.error,
+            isStreaming: node.isStreaming,
           },
           onEditNode: handleEditNode,
           onAddChildNode: handleAddChildNode,
           onDeleteNode: handleDeleteNode,
+          onRunNode: handleRunNode,
         },
       })),
-    [fallbackLayout, handleAddChildNode, handleDeleteNode, handleEditNode, session]
+    [fallbackLayout, handleAddChildNode, handleDeleteNode, handleEditNode, handleRunNode, session]
   );
 
   const flowEdges = useMemo<Edge[]>(
@@ -204,10 +314,18 @@ export function TreeChatFlow({ session, runtimeModel }: TreeChatFlowProps) {
     try {
       const content = await generateTreeChat({
         treeModel: runtimeModel,
-        messages: [
-          { role: "system", content: runtimeModel.defaultSystemPrompt },
-          { role: "user", content: "请用一句话说明你现在是否通过 host Tree 适配器执行。" },
-        ],
+        messages: session.nodes
+          .slice()
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          .flatMap((node) => {
+            if (node.type === "system") {
+              return node.userMessage.trim() ? [{ role: "system" as const, content: node.userMessage }] : [];
+            }
+            const result: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
+            if (node.userMessage.trim()) result.push({ role: "user", content: node.userMessage });
+            if (node.assistantMessage.trim()) result.push({ role: "assistant", content: node.assistantMessage });
+            return result;
+          }),
       });
       setRuntimeOutput(content || "请求完成，但未返回文本内容。");
     } catch (error) {
@@ -232,7 +350,7 @@ export function TreeChatFlow({ session, runtimeModel }: TreeChatFlowProps) {
           onClick={handleRunAdapterSmoke}
           type="button"
         >
-          {isRunning ? "适配器执行中..." : "运行 Tree Host 适配器测试"}
+          {isRunning ? "执行中..." : "运行当前树"}
         </button>
         {runtimeError ? <p className="mt-2 text-error">{runtimeError}</p> : null}
         {runtimeOutput ? <p className="mt-2 text-success whitespace-pre-wrap">{runtimeOutput}</p> : null}

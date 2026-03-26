@@ -362,7 +362,7 @@ export const Sidebar = memo(function Sidebar({
               </p>
             </div>
             <div className="flex-1 p-3 text-xs text-base-content/50 leading-relaxed">
-              该区域在后续任务中会替换为完整的 Tree 工作区侧栏内容。
+              Tree 模式的会话、模型与图谱编辑入口已经收敛到主工作区内，右侧面板仅保留模式说明，避免与宿主壳产生重复侧栏。
             </div>
           </>
         )}
